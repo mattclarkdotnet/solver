@@ -16,4 +16,5 @@
 - `SolverSession` owns the shared user-facing state for the current pattern and selected tool, and persists both values to on-device storage.
 - Pattern handling is split into a pure parser and normalized query model so all solver tools can share the same interpretation rules.
 - The first shipped solver feature is an offline crossword search service backed by a bundled text word list in the app bundle.
-- The UI keeps the current pattern visible above a tab bar, with crossword search implemented now and the remaining tools represented as roadmap placeholders that already share the same session state.
+- The UI keeps the multi-tool tab shell in place, but the crossword tab now owns the visible pattern-entry workflow: the pattern field sits at the top of that tab and the results region underneath reacts live to parser state changes.
+- The crossword tab drives its results area from a small view-level state machine so empty input, invalid patterns, loading, no-match states, and successful offline matches are all explicit and testable.

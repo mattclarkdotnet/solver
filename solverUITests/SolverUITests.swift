@@ -6,22 +6,18 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
-    func testLaunchShowsReadyCrosswordShell() throws {
+    func testLaunchShowsFocusedCrosswordShell() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")
         app.launch()
 
         XCTAssertTrue(app.textFields["pattern-field"].waitForExistence(timeout: 5))
-
-        let searchButton = app.buttons["crossword-search-button"]
-        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
-        XCTAssertFalse(searchButton.isEnabled)
-
         XCTAssertTrue(app.staticTexts["Start with a pattern"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["crossword-search-button"].exists)
     }
 
     @MainActor
-    func testCrosswordSearchShowsBundledMatches() throws {
+    func testCrosswordResultsUpdateLiveWhileTyping() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")
         app.launch()
@@ -29,12 +25,23 @@ final class SolverUITests: XCTestCase {
         let patternField = app.textFields["pattern-field"]
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
         patternField.tap()
-        patternField.typeText("c?t\n")
-
-        let searchButton = app.buttons["crossword-search-button"]
-        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
-        searchButton.tap()
+        patternField.typeText("c?t")
 
         XCTAssertTrue(app.staticTexts["Cat"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testInvalidPatternShowsInlineGuidance() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("ice-")
+
+        XCTAssertTrue(app.staticTexts["Fix the pattern first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Patterns cannot end with a word break."].waitForExistence(timeout: 5))
     }
 }

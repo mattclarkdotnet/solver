@@ -17,10 +17,7 @@ private struct SolverHomeView: View {
     let searchService: CrosswordSearchService
 
     var body: some View {
-        VStack(spacing: 20) {
-            PatternEntryCard(session: session)
-            ToolTabs(session: session, searchService: searchService)
-        }
+        ToolTabs(session: session, searchService: searchService)
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .padding(.bottom, 12)
@@ -28,31 +25,12 @@ private struct SolverHomeView: View {
     }
 }
 
-private struct PatternEntryCard: View {
+private struct PatternEntryField: View {
     @ObservedObject var session: SolverSession
     @FocusState private var isPatternFieldFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Current pattern")
-                        .font(.headline)
-                    Text("Letters stay fixed, `?` or `.` or spaces match one letter, `*` or `+` match a run, and `-` splits words.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if session.rawPattern.isEmpty == false {
-                    Button("Clear") {
-                        session.clearPattern()
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
+        VStack(alignment: .leading, spacing: 12) {
             TextField("Example: c?t or ice-cream", text: $session.rawPattern)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -69,49 +47,12 @@ private struct PatternEntryCard: View {
                     isPatternFieldFocused = false
                 }
 
-            PatternStatusRow(queryState: session.queryState)
+            Text("Letters stay fixed, `?` or `.` or spaces match one letter, `*` or `+` match a run, and `-` splits words.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.3))
-        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Current pattern")
-    }
-}
-
-private struct PatternStatusRow: View {
-    let queryState: PatternQueryState
-
-    var body: some View {
-        Group {
-            switch queryState {
-            case .empty:
-                StatusPill(
-                    title: "Enter a pattern to search the offline list.",
-                    symbol: "pencil.line",
-                    tint: .secondary
-                )
-            case .invalid(let message):
-                StatusPill(
-                    title: message,
-                    symbol: "exclamationmark.triangle",
-                    tint: .orange
-                )
-            case .valid(let query):
-                StatusPill(
-                    title: query.summary,
-                    symbol: query.allowsPhraseResults ? "textformat.abc.dottedunderline" : "checkmark.circle",
-                    tint: .green
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -122,7 +63,7 @@ private struct ToolTabs: View {
     var body: some View {
         TabView(selection: $session.selectedTool) {
             Tab("Crossword", systemImage: SolverTool.crossword.systemImage, value: .crossword) {
-                CrosswordToolView(queryState: session.queryState, searchService: searchService)
+                CrosswordToolView(session: session, searchService: searchService)
             }
 
             Tab("Scrabble", systemImage: SolverTool.scrabble.systemImage, value: .scrabble) {
@@ -154,58 +95,39 @@ private struct ToolTabs: View {
 }
 
 private struct CrosswordToolView: View {
-    let queryState: PatternQueryState
+    @ObservedObject var session: SolverSession
     let searchService: CrosswordSearchService
 
     @State private var presentationState: CrosswordPresentationState = .idle
-    @State private var lastSearchPattern: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                toolHeader
-                searchAction
+                PatternEntryField(session: session)
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
-        .onChange(of: queryFingerprint, initial: true) { _, newValue in
-            guard lastSearchPattern != nil else { return }
-            if lastSearchPattern != newValue {
-                presentationState = .idle
-            }
+        .task(id: queryFingerprint) {
+            await refreshResults()
         }
+    }
+
+    private var queryState: PatternQueryState {
+        session.queryState
     }
 
     private var queryFingerprint: String? {
-        queryState.query?.normalizedPattern
-    }
-
-    private var toolHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Offline crossword search")
-                .font(.title3.weight(.semibold))
-            Text("Searches the bundled starter word list on-device and keeps your current pattern in sync with the rest of the app.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+        switch queryState {
+        case .empty:
+            "empty"
+        case .invalid(let message):
+            "invalid:\(message)"
+        case .valid(let query):
+            "valid:\(query.normalizedPattern)"
         }
-    }
-
-    private var searchAction: some View {
-        Button {
-            Task {
-                await performSearch()
-            }
-        } label: {
-            Label("Find Matches", systemImage: "magnifyingglass")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(isSearchDisabled)
-        .accessibilityIdentifier("crossword-search-button")
-        .accessibilityHint("Search the bundled crossword list using the current pattern.")
     }
 
     @ViewBuilder
@@ -213,11 +135,12 @@ private struct CrosswordToolView: View {
         switch presentationState {
         case .idle:
             SearchMessageCard(
-                title: idleTitle,
-                message: idleMessage,
-                symbol: idleSymbol,
-                tint: idleTint
+                title: "Start with a pattern",
+                message: "Enter a word or phrase pattern above and live results will appear here from the bundled offline list.",
+                symbol: "character.cursor.ibeam",
+                tint: .secondary
             )
+            .accessibilityIdentifier("crossword-status-card")
         case .loading:
             SearchMessageCard(
                 title: "Searching the offline list",
@@ -225,6 +148,7 @@ private struct CrosswordToolView: View {
                 symbol: "hourglass",
                 tint: .blue
             )
+            .accessibilityIdentifier("crossword-status-card")
         case .empty(let pattern):
             SearchMessageCard(
                 title: "No matches for \(pattern)",
@@ -232,6 +156,15 @@ private struct CrosswordToolView: View {
                 symbol: "text.magnifyingglass",
                 tint: .secondary
             )
+            .accessibilityIdentifier("crossword-status-card")
+        case .invalid(let message):
+            SearchMessageCard(
+                title: "Fix the pattern first",
+                message: message,
+                symbol: "exclamationmark.triangle",
+                tint: .orange
+            )
+            .accessibilityIdentifier("crossword-status-card")
         case .failed(let message):
             SearchMessageCard(
                 title: "Search unavailable",
@@ -239,82 +172,44 @@ private struct CrosswordToolView: View {
                 symbol: "xmark.octagon",
                 tint: .red
             )
-        case .results(let listName, let matches):
-            ResultsCard(listName: listName, matches: matches)
-        }
-    }
-
-    private var isSearchDisabled: Bool {
-        if case .valid = queryState {
-            false
-        } else {
-            true
-        }
-    }
-
-    private var idleTitle: String {
-        switch queryState {
-        case .empty:
-            "Start with a pattern"
-        case .invalid:
-            "Fix the pattern first"
-        case .valid:
-            "Ready to search"
-        }
-    }
-
-    private var idleMessage: String {
-        switch queryState {
-        case .empty:
-            "Enter a word or phrase pattern above and the crossword tool will search the bundled starter list."
-        case .invalid(let message):
-            message
-        case .valid(let query):
-            "Press Find Matches to search for \(query.normalizedPattern) in the offline crossword list."
-        }
-    }
-
-    private var idleSymbol: String {
-        switch queryState {
-        case .empty:
-            "character.cursor.ibeam"
-        case .invalid:
-            "exclamationmark.triangle"
-        case .valid:
-            "magnifyingglass.circle"
-        }
-    }
-
-    private var idleTint: Color {
-        switch queryState {
-        case .empty:
-            .secondary
-        case .invalid:
-            .orange
-        case .valid:
-            .blue
+            .accessibilityIdentifier("crossword-status-card")
+        case .results(let matches):
+            ResultsCard(matches: matches)
+                .accessibilityIdentifier("crossword-results-card")
         }
     }
 
     @MainActor
-    private func performSearch() async {
-        guard case .valid(let query) = queryState else {
+    private func refreshResults() async {
+        switch queryState {
+        case .empty:
             presentationState = .idle
             return
+        case .invalid(let message):
+            presentationState = .invalid(message)
+            return
+        case .valid(let query):
+            break
         }
 
         presentationState = .loading
 
-        do {
-            async let matches = searchService.search(query)
-            async let wordListName = searchService.wordListName()
-            let resolvedMatches = try await matches
-            let resolvedListName = try await wordListName
+        guard case .valid(let query) = queryState else {
+            return
+        }
 
-            lastSearchPattern = query.normalizedPattern
+        do {
+            let resolvedMatches = try await searchService.search(query)
+
+            guard Task.isCancelled == false else {
+                return
+            }
+
             presentationState = resolvedMatches.isEmpty
                 ? .empty(query.normalizedPattern)
-                : .results(listName: resolvedListName, matches: resolvedMatches)
+                : .results(resolvedMatches)
+        } catch is CancellationError {
+            return
         } catch {
             presentationState = .failed(error.localizedDescription)
         }
@@ -322,30 +217,10 @@ private struct CrosswordToolView: View {
 }
 
 private struct ResultsCard: View {
-    let listName: String
     let matches: [CrosswordMatch]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(matches.count) matches")
-                        .font(.headline)
-                    Text(listName)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text("Offline")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(Color.green.opacity(0.15)))
-                    .foregroundStyle(.green)
-            }
-
+        VStack(alignment: .leading, spacing: 10) {
             LazyVStack(alignment: .leading, spacing: 10) {
                 ForEach(matches) { match in
                     Text(match.displayText)
@@ -423,35 +298,13 @@ private struct SearchMessageCard: View {
     }
 }
 
-private struct StatusPill: View {
-    let title: String
-    let symbol: String
-    let tint: Color
-
-    var body: some View {
-        Label {
-            Text(title)
-                .font(.footnote)
-        } icon: {
-            Image(systemName: symbol)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule()
-                .fill(tint.opacity(0.12))
-        )
-        .foregroundStyle(tint)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private enum CrosswordPresentationState {
     case idle
     case loading
     case empty(String)
+    case invalid(String)
     case failed(String)
-    case results(listName: String, matches: [CrosswordMatch])
+    case results([CrosswordMatch])
 }
 
 struct ContentView_Previews: PreviewProvider {
