@@ -9,7 +9,9 @@ Solver is designed to help solve your favourite word games.  With a simple UI it
 - Scrabble word checker
 - Thesaurus
 
-Solver comes with everything bundled so it works even when you are offline
+Solver comes with everything bundled so it works even when you are offline.
+
+Solutions appear live as you type.
 
 ## Layout
 
