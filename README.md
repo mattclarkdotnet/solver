@@ -1,6 +1,6 @@
 # Solver - the best word game Solver
 
-Solver is a designed to help solve your favourite word games.  With a simple UI it gives access to multiple different tools for the same word pattern:
+Solver is designed to help solve your favourite word games.  With a simple UI it gives access to multiple different tools for the same word pattern:
 - Crossword word search (includes searching for phrases)
 - Scrabble word search
 - Anagram solver
@@ -8,6 +8,8 @@ Solver is a designed to help solve your favourite word games.  With a simple UI 
 - Word definitions
 - Scrabble word checker
 - Thesaurus
+
+Solver comes with everything bundled so it works even when you are offline
 
 ## Layout
 
