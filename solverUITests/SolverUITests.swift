@@ -6,6 +6,21 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
+    func testLaunchShowsReadyCrosswordShell() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        XCTAssertTrue(app.textFields["pattern-field"].waitForExistence(timeout: 5))
+
+        let searchButton = app.buttons["crossword-search-button"]
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
+        XCTAssertFalse(searchButton.isEnabled)
+
+        XCTAssertTrue(app.staticTexts["Start with a pattern"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testCrosswordSearchShowsBundledMatches() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")

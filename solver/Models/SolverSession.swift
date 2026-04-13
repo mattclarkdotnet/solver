@@ -16,11 +16,12 @@ final class SolverSession: ObservableObject {
 
     init(
         parser: PatternParser = PatternParser(),
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        launchArguments: [String] = ProcessInfo.processInfo.arguments
     ) {
         self.parser = parser
         self.defaults = defaults
-        if ProcessInfo.processInfo.arguments.contains("UITEST_RESET_STATE") {
+        if launchArguments.contains("UITEST_RESET_STATE") {
             defaults.removeObject(forKey: StorageKey.rawPattern)
             defaults.removeObject(forKey: StorageKey.selectedTool)
         }

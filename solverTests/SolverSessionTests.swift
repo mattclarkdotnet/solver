@@ -18,7 +18,7 @@ final class SolverSessionTests: XCTestCase {
         XCTAssertEqual(restored.selectedTool, .thesaurus)
     }
 
-    func testUiTestLaunchArgumentClearsPersistedState() {
+    func testResetLaunchArgumentClearsPersistedState() {
         let defaults = UserDefaults(suiteName: #function)!
         defaults.removePersistentDomain(forName: #function)
         defer { defaults.removePersistentDomain(forName: #function) }
@@ -26,9 +26,14 @@ final class SolverSessionTests: XCTestCase {
         defaults.set("c?t", forKey: "solver.rawPattern")
         defaults.set(SolverTool.crossword.rawValue, forKey: "solver.selectedTool")
 
-        let session = SolverSession(defaults: defaults)
+        let session = SolverSession(
+            defaults: defaults,
+            launchArguments: ["UITEST_RESET_STATE"]
+        )
 
-        XCTAssertEqual(session.rawPattern, "c?t")
+        XCTAssertEqual(session.rawPattern, "")
         XCTAssertEqual(session.selectedTool, .crossword)
+        XCTAssertNil(defaults.string(forKey: "solver.rawPattern"))
+        XCTAssertNil(defaults.string(forKey: "solver.selectedTool"))
     }
 }
