@@ -1,34 +1,32 @@
 # Plan
 
 ## Roadmap alignment
-- This plan delivers the current `ROADMAP.md` `Now` item by replacing the Xcode placeholder UI with the first production slice of Solver: shared pattern entry, parsing, tab navigation, and crossword search backed entirely by bundled offline word-list data.
+- This plan delivers the current `ROADMAP.md` `Now` item by reshaping the crossword tab into a focused live-search experience while preserving the existing multi-tool shell and offline crossword engine.
 
 ## Objective
-- Ship a testable vertical slice of Solver for iOS 26+ that lets a user enter a word pattern, understand how it is interpreted, switch between solver tabs, and get crossword search results from bundled on-device data with no network dependency.
+- Ship a testable iOS 26+ crossword tab that keeps the pattern field at the top, shows live offline results underneath as the pattern changes, and still fits cleanly inside Solver's multi-tool tab shell.
 
 ## Assumptions
 - Solver is an offline-only app, so every shipped feature in this plan must work entirely from bundled or on-device data.
-- Definitions, thesaurus, and Scrabble validation can be deferred until later roadmap items even if the UI reserves space for those tools.
-- The first implementation should prioritize iPhone usability while remaining compatible with iPad layouts.
-- `SCENARIOS.md` and `TESTS.md` will be created alongside the implementation work for this roadmap item.
+- The multi-tool shell remains in place for this slice; only the crossword tab layout and behavior are being reworked.
+- Other tabs can remain placeholder-driven as long as the shared query model and current persistence behavior continue to work.
+- This slice should remove the explicit crossword search action in favor of live updates that stay keyboard-friendly on iPhone while still behaving sensibly on iPad.
 
 ## Scenario mapping
-- `Pattern entry and parsing`: GIVEN a user enters letters, single-letter wildcards, multi-letter wildcards, and hyphenated phrases, WHEN the pattern is parsed, THEN the app preserves the intended structure and exposes a normalized query for solver features.
-- `Crossword results from shared query`: GIVEN a valid pattern, WHEN the user opens the crossword tab, THEN the app returns matching words or phrases from the selected crossword word list.
-- `Offline operation`: GIVEN the device has no network connectivity, WHEN the user uses the implemented solver features, THEN the app continues to function normally because the feature uses only local data and logic.
-- `Empty and invalid input handling`: GIVEN an empty or unparseable pattern, WHEN the user attempts to search, THEN the app shows clear guidance instead of misleading results or crashes.
-- `Tab coherence`: GIVEN a user changes the current pattern, WHEN they switch between tabs, THEN each tool reads the same shared query state without losing the current input.
-- `Basic persistence`: GIVEN the app is backgrounded or relaunched during normal use, WHEN the user returns, THEN the last active pattern and selected tool are restored if persistence has already been completed for this slice.
+- `Crossword tab layout`: GIVEN a user opens the crossword tab, WHEN the screen appears, THEN the pattern field is the first control at the top of the tab and the results area sits directly below it without extra action chrome.
+- `Live results`: GIVEN a valid pattern, WHEN the user edits the pattern, THEN the crossword results update automatically from the bundled offline word list without requiring a search button tap.
+- `Empty and invalid input handling`: GIVEN the pattern is empty or unparseable, WHEN the crossword tab is visible, THEN the results area shows clear guidance instead of stale or misleading matches.
+- `Tab coherence`: GIVEN a user changes the crossword pattern, WHEN they switch between tabs and return, THEN the current pattern and crossword state remain coherent with the shared app session.
+- `Basic persistence`: GIVEN the app is backgrounded or relaunched during normal use, WHEN the user returns to the crossword tab, THEN the last pattern and selected tool are restored.
+- `Offline operation`: GIVEN the device has no network connectivity, WHEN live crossword results update, THEN the feature continues to work normally because it relies only on local parsing and bundled data.
 
 ## Exit criteria
-- Replace the scaffolded `Item` sample with a production app shell built around a shared solver query model.
-- Implement a parser for the README word-pattern syntax, including letters, `.`, `?`, spaces, `+`, `*`, and hyphens.
-- Add a crossword search engine over at least one bundled word list and surface ranked or grouped results in the UI.
-- Provide loading, empty, and invalid-input states that are explicit and testable.
-- Add unit tests for parsing and search behavior, including repeated events and unparseable input.
-- Prove the implemented feature set has no runtime dependency on network access.
-- Add behavioral scenarios and test-suite documentation in `tests/SCENARIOS.md` and `tests/TESTS.md`.
-- Keep `DESIGN.md`, `TESTING.md`, `ROADMAP.md`, and code comments aligned with the implementation choices for this slice.
+- Keep the multi-tool shell intact while moving the crossword pattern field into the crossword tab's primary content flow.
+- Remove the explicit crossword search button and replace it with live result updates driven by the current parsed query.
+- Present only the pattern field and the crossword results region as the main crossword-tab content, with empty and invalid states handled inline.
+- Preserve the existing offline parser, bundled data source, persistence, and shared session behavior unless a change is required to support the new layout.
+- Add or update automated tests for live result updates, empty and invalid live states, and the focused crossword-tab layout.
+- Keep `DESIGN.md`, `TESTING.md`, `ROADMAP.md`, and test documentation aligned with the implementation choices for this slice.
 
 ## Promotion rule
-- Promote this plan when the `Now` roadmap item is complete, tested, and documented; then move that item to `Completed`, advance the current `Next` item into `Now`, and replace `PLAN.md` with a new plan for the new `Now` item.
+- Promote this plan when the crossword tab has the focused live-search layout, the behavior is tested and documented, and the roadmap can advance to the next solver capability slice.
