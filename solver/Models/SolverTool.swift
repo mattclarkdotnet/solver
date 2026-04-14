@@ -51,7 +51,7 @@ enum SolverTool: String, CaseIterable, Identifiable, Codable {
 
     var statusTitle: String {
         switch self {
-        case .crossword:
+        case .crossword, .anagramSolver:
             "Ready now"
         default:
             "Planned next"
@@ -62,10 +62,10 @@ enum SolverTool: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .crossword:
             "Search the bundled offline crossword list with the shared word pattern."
+        case .anagramSolver:
+            "Find rearrangements in the bundled offline crossword test list using the shared letters input."
         case .scrabble:
             "Scrabble scoring and rack-aware search will be added in the next roadmap slice."
-        case .anagramSolver:
-            "Anagram solving will reuse the same shared parser once the Scrabble engine is in place."
         case .anagramGenerator:
             "Generation tools will follow after the first search-focused tools are stable."
         case .definitions:

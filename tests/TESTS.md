@@ -2,20 +2,20 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the focused live-search crossword tab described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the new anagram-solver slice described in `PLAN.md`.
 
 ## Test layers
 
 - Parser unit tests cover normalization of the word-pattern syntax from `README.md`, including letters, single-character wildcards, multi-character wildcards, spaces, and hyphens.
-- Search engine unit tests cover matching behavior against bundled local datasets, including common matches, no-match cases, phrase handling, and repeated searches.
+- Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, no-match cases, phrase handling where relevant, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
 - Persistence tests cover saving and restoring the current pattern and selected tool using on-device storage only.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially the focused crossword layout, live results, invalid input, tab coherence, and offline operation.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially live anagram results, unsupported anagram input, tab coherence, and offline operation.
 
 ## Current coverage target
 
-- Start with fast unit tests for parsing and crossword matching because they define the core behavior of the first shipped slice.
-- Add behavioral coverage for the crossword tab's live-search flow before broadening into every future tool.
+- Start with fast unit tests for parsing, crossword matching, and anagram matching because they define the core behavior of the currently implemented tools.
+- Add behavioral coverage for the anagram tab's live-search flow before broadening into every future tool.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
 
@@ -25,16 +25,20 @@ This document explains how the automated test suite should support the strategy 
   Covers valid patterns, invalid patterns, normalization, and edge cases around wildcard combinations.
 - `CrosswordSearchTests`
   Covers exact-length matching, phrase matching, no-results behavior, and stability under repeated searches.
+- `AnagramSearchTests`
+  Covers exact-letter anagram matching, exclusion of the source word, unsupported input shapes, and filtering of non-anagram entries from the local dataset.
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, and inline invalid-pattern feedback.
+  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, and inline invalid-pattern feedback.
 
 ## Notable edge cases
 
 - Repeated live updates with the same query.
 - Unparseable user input.
-- Empty input shown in the crossword results region.
+- Empty input shown in crossword or anagram results regions.
+- Wildcard input sent to the anagram tool.
+- Multi-word input sent to the anagram tool.
 - State restoration after app termination or relaunch.
 - Unexpected local data values in bundled word lists.
 - Large result sets that still need predictable ordering and presentation.
@@ -48,6 +52,6 @@ This document explains how the automated test suite should support the strategy 
 
 ## Current gaps
 
-- The UI suite currently focuses on the crossword tab and does not yet automate tab switching or restored-state journeys across the wider shell.
+- The UI suite still needs broader automated coverage for switching between implemented tools with one shared input session.
 - Property testing is still desirable for parser and matcher logic once the current UI slice settles.
 - Large-list performance and ranking coverage will need to expand when bigger bundled datasets arrive.

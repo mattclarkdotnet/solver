@@ -44,4 +44,40 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fix the pattern first"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Patterns cannot end with a word break."].waitForExistence(timeout: 5))
     }
+
+    @MainActor
+    func testAnagramTabShowsLiveMatchesFromBundledTestData() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Anagram"].tap()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("stare")
+
+        XCTAssertTrue(app.staticTexts["Aster"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Rates"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testAnagramTabRejectsWildcardInputInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Anagram"].tap()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("st?re")
+
+        XCTAssertTrue(app.staticTexts["Fix the input first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["Anagram solving currently supports letters only, without wildcards."].waitForExistence(timeout: 5)
+        )
+    }
 }

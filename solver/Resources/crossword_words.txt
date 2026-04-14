@@ -20,8 +20,10 @@ clue
 clues
 word
 words
+part
 phrase
 phrases
+rapt
 letter
 letters
 pattern

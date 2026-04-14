@@ -15,6 +15,7 @@
 - The app is a single iOS target built with SwiftUI and no external runtime dependencies.
 - `SolverSession` owns the shared user-facing state for the current pattern and selected tool, and persists both values to on-device storage.
 - Pattern handling is split into a pure parser and normalized query model so all solver tools can share the same interpretation rules.
-- The first shipped solver feature is an offline crossword search service backed by a bundled text word list in the app bundle.
-- The UI keeps the multi-tool tab shell in place, but the crossword tab now owns the visible pattern-entry workflow: the pattern field sits at the top of that tab and the results region underneath reacts live to parser state changes.
-- The crossword tab drives its results area from a small view-level state machine so empty input, invalid patterns, loading, no-match states, and successful offline matches are all explicit and testable.
+- Solver currently ships two offline search tools backed by the bundled test crossword word list: live crossword pattern search and single-word anagram solving.
+- The UI keeps the multi-tool tab shell in place, and each implemented tab owns the visible pattern-entry workflow for its tool while still reading and writing the same shared session state.
+- The crossword and anagram tabs each drive their results area from a small view-level state machine so empty input, invalid patterns, loading, no-match states, and successful offline matches are all explicit and testable.
+- Anagram solving builds on top of the shared parser but narrows the supported input shape to one word made of literal letters only; wildcard and multi-word inputs are surfaced as explicit guidance instead of being guessed at.

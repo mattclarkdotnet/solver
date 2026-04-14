@@ -1,14 +1,12 @@
 # Roadmap
 
 ## Now
-- Hold feature promotion until the roadmap is re-sliced into approved single-functionality items.
+- Add anagram solving using test crossword word list data.
 
 ## Next
-- Select the next single-functionality roadmap item to promote after roadmap review.
+- Add Scrabble search using test scrabble word list data.
 
 ## Later
-- Add anagram solving using test crossword word list data.
-- Add Scrabble search using test scrabble word list data.
 - Add definitions lookup using test dictionary data
 - Add thesaurus lookup using test thesaurus data
 - Add Scrabble word checking using test scrabble word list data

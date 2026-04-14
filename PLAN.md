@@ -1,30 +1,31 @@
 # Plan
 
 ## Roadmap alignment
-- This plan delivers the current `ROADMAP.md` `Now` item by keeping feature promotion on hold while the roadmap remains sliced into approved single-functionality items.
+- This plan delivers the current `ROADMAP.md` `Now` item by adding offline anagram solving on top of the existing shared pattern/session architecture, using test crossword word-list data as the first dataset.
 
 ## Objective
-- Keep planning artifacts internally consistent after completion of the current implementation slice so the next promoted item can be chosen deliberately rather than implicitly.
+- Ship a testable anagram-solver workflow inside the existing multi-tool shell that accepts the shared query input, searches the local test crossword word list for rearrangements, and presents results without any network dependency.
 
 ## Assumptions
-- Solver is an offline-only app, so every shipped feature in this plan must work entirely from bundled or on-device data.
-- The just-completed crossword-tab refinement is accepted and can move to `Completed`.
-- The developer does not want any feature item promoted into `Now` yet.
-- `ROADMAP.md` still needs one `Now` item and one `Next` item even during a holding state because of the repository rules in `AGENTS.md`.
-- `Later` items should each describe exactly one piece of functionality so future promotion decisions stay narrow and explicit.
+- Solver remains offline-only, so the anagram solver must rely entirely on bundled or on-device data.
+- The current crossword-tab live-search workflow and shared session behavior are considered stable enough to build on rather than redesign in this slice.
+- “Using test crossword word list data” means the first anagram implementation can reuse the existing lightweight bundled dataset rather than waiting for production-grade word lists.
+- The anagram tool should favor correctness, clear states, and testability over advanced ranking or performance work, which remain later roadmap items.
 
 ## Scenario mapping
-- `Completion bookkeeping`: GIVEN the current crossword-tab item is finished, WHEN the roadmap is updated, THEN that item appears in `Completed` and no longer remains in an active section.
-- `No implicit promotion`: GIVEN the developer does not want a new implementation slice started yet, WHEN the roadmap is rewritten, THEN no feature item is advanced into `Now`.
-- `Single-slice backlog`: GIVEN future work remains in `Later`, WHEN each item is reviewed, THEN each entry describes one piece of functionality rather than a bundled set of changes.
-- `Plan consistency`: GIVEN the roadmap changes, WHEN `PLAN.md` is replaced, THEN it matches the new holding state instead of describing already-finished work.
+- `Find anagrams from local data`: GIVEN the bundled test crossword word list contains rearrangements of a valid input, WHEN the user opens the anagram tool with that input, THEN the app shows matching offline anagram results.
+- `No-result handling`: GIVEN the local test word list contains no anagrams for the current input, WHEN the user uses the anagram tool, THEN the app shows a clear empty state instead of stale matches.
+- `Invalid and unsupported input`: GIVEN the current shared input cannot be used for an anagram search, WHEN the anagram tool becomes active, THEN the UI explains why and avoids misleading results.
+- `Shared session coherence`: GIVEN the user edits the current pattern and switches between crossword and anagram tools, WHEN they return to either tab, THEN both tools stay in sync with the same persisted shared session state.
+- `Offline operation`: GIVEN the device has no network connectivity, WHEN the user runs an anagram search, THEN the tool works normally because it uses only local parsing, local matching logic, and bundled test data.
 
 ## Exit criteria
-- Move the completed crossword-tab refinement into `Completed` at the top of the list.
-- Replace the old feature-oriented `Now` and `Next` entries with holding items that do not implicitly reprioritize implementation work.
-- Move the former `Next` feature item into `Later` rather than promoting it.
-- Rewrite every `Later` entry so each item contains only one piece of functionality.
-- Replace `PLAN.md` so it accurately describes the holding state created by the updated roadmap.
+- Add an anagram-solving service or equivalent pure matching core that works against the bundled test crossword word list.
+- Define how the shared input is interpreted for anagram solving and surface unsupported cases explicitly in the UI.
+- Implement the anagram tab so it shows loading, empty, invalid, and result states consistent with the existing shell.
+- Reuse or extend the shared session/query flow without breaking the crossword workflow or tab persistence.
+- Add automated tests for anagram matching behavior, unsupported input handling, and user-visible anagram flows.
+- Keep `DESIGN.md`, `TESTING.md`, `tests/SCENARIOS.md`, and `tests/TESTS.md` aligned with the implementation choices for this slice.
 
 ## Promotion rule
-- Promote this plan when the developer chooses a specific single-functionality backlog item to move into `Now`, then replace this holding plan with an implementation plan for that chosen item.
+- Promote this plan when offline anagram solving using the test crossword word list is implemented, tested, and documented, then move that roadmap item to `Completed`, advance the current `Next` item into `Now`, and replace `PLAN.md` with a new plan for the new `Now` item.
