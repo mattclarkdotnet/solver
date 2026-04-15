@@ -1,13 +1,12 @@
 # Roadmap
 
 ## Now
-- Add definitions lookup using test dictionary data.
-
-## Next
 - Add thesaurus lookup using test thesaurus data.
 
+## Next
+- Add Scrabble word checking using test scrabble word list data.
+
 ## Later
-- Add Scrabble word checking using test scrabble word list data
 - Add user preferences.
 - Add selectable default crossword word lists.
 - Add selectable default Scrabble word lists.
@@ -25,6 +24,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Add definitions lookup using test dictionary data.
 - Add Scrabble search using test scrabble word list data.
 - Add anagram solving using test crossword word list data.
 - Refine the crossword tab into a focused live-search workflow with the pattern field at the top and results updating below inside the existing multi-tool shell.
