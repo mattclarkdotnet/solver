@@ -2,20 +2,20 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the new Scrabble-search slice described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the new definitions-lookup slice described in `PLAN.md`.
 
 ## Test layers
 
 - Parser unit tests cover normalization of the word-pattern syntax from `README.md`, including letters, single-character wildcards, multi-character wildcards, spaces, and hyphens.
-- Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack matching, blank-tile handling, no-match cases, and repeated searches.
+- Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack matching, definitions lookup, no-match cases, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
 - Persistence tests cover saving and restoring the current pattern and selected tool using on-device storage only.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially live Scrabble results, blank-tile behavior, unsupported Scrabble input, tab coherence, and offline operation.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially live definitions lookup, pronunciation/definition presentation, unsupported lookup input, tab coherence, and offline operation.
 
 ## Current coverage target
 
-- Start with fast unit tests for parsing, crossword matching, anagram matching, and Scrabble rack matching because they define the core behavior of the currently implemented tools.
-- Add behavioral coverage for the Scrabble tab's live-search flow before broadening into every future tool.
+- Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack matching, and definitions lookup because they define the core behavior of the currently implemented tools.
+- Add behavioral coverage for the definitions tab's live-search flow before broadening into every future tool.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
 
@@ -29,20 +29,25 @@ This document explains how the automated test suite should support the strategy 
   Covers exact-letter anagram matching, exclusion of the source word, unsupported input shapes, and filtering of non-anagram entries from the local dataset.
 - `ScrabbleSearchTests`
   Covers subset-of-rack matching, blank-tile substitution, unsupported rack input, and word ordering against the local test Scrabble list.
+- `DefinitionsLookupTests`
+  Covers exact lookup, phrase lookup, unsupported input, and parsing of the bundled definitions-record format.
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, live Scrabble matches, and inline invalid-input feedback.
+  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, live Scrabble matches, live definitions lookup, and inline invalid-input feedback.
 
 ## Notable edge cases
 
 - Repeated live updates with the same query.
 - Unparseable user input.
 - Empty input shown in crossword, anagram, or Scrabble results regions.
+- Empty input shown in the definitions results region.
 - Wildcard input sent to the anagram tool.
 - Multi-word input sent to the anagram tool.
 - Blank tiles used in the Scrabble rack.
 - Unsupported non-rack characters sent to the Scrabble tool.
+- Invalid record formatting in the bundled definitions dataset.
+- Wildcard-heavy input sent to the definitions tool.
 - State restoration after app termination or relaunch.
 - Unexpected local data values in bundled word lists.
 - Large result sets that still need predictable ordering and presentation.

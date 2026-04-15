@@ -6,6 +6,13 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
+    private func openOverflowTab(named name: String, in app: XCUIApplication) {
+        app.tabBars.buttons["More"].tap()
+        XCTAssertTrue(app.tables.staticTexts[name].waitForExistence(timeout: 5))
+        app.tables.staticTexts[name].tap()
+    }
+
+    @MainActor
     func testLaunchShowsFocusedCrosswordShell() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")
@@ -132,6 +139,43 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fix the rack first"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             app.staticTexts["Scrabble search supports rack letters plus ? blank tiles only."].waitForExistence(timeout: 5)
+        )
+    }
+
+    @MainActor
+    func testDefinitionsTabShowsBundledDefinition() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        openOverflowTab(named: "Define", in: app)
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("solver")
+
+        XCTAssertTrue(app.staticTexts["solver"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["SOL-vuhr"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["A person or thing that finds an answer to a problem or puzzle."].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testDefinitionsTabRejectsWildcardLookupInputInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        openOverflowTab(named: "Define", in: app)
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("solv?r")
+
+        XCTAssertTrue(app.staticTexts["Fix the lookup first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["Definitions lookup supports literal words or phrases only, without wildcards or rack symbols."].waitForExistence(timeout: 5)
         )
     }
 }

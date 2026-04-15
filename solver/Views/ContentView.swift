@@ -5,6 +5,7 @@ struct ContentView: View {
     private let crosswordService = CrosswordSearchService()
     private let scrabbleService = ScrabbleSearchService()
     private let anagramService = AnagramSearchService()
+    private let definitionsService = DefinitionsLookupService()
 
     var body: some View {
         NavigationStack {
@@ -12,7 +13,8 @@ struct ContentView: View {
                 session: session,
                 crosswordService: crosswordService,
                 scrabbleService: scrabbleService,
-                anagramService: anagramService
+                anagramService: anagramService,
+                definitionsService: definitionsService
             )
                 .navigationTitle("Solver")
         }
@@ -24,13 +26,15 @@ private struct SolverHomeView: View {
     let crosswordService: CrosswordSearchService
     let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
+    let definitionsService: DefinitionsLookupService
 
     var body: some View {
         ToolTabs(
             session: session,
             crosswordService: crosswordService,
             scrabbleService: scrabbleService,
-            anagramService: anagramService
+            anagramService: anagramService,
+            definitionsService: definitionsService
         )
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -78,6 +82,7 @@ private struct ToolTabs: View {
     let crosswordService: CrosswordSearchService
     let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
+    let definitionsService: DefinitionsLookupService
 
     var body: some View {
         TabView(selection: $session.selectedTool) {
@@ -98,7 +103,7 @@ private struct ToolTabs: View {
             }
 
             Tab("Define", systemImage: SolverTool.definitions.systemImage, value: .definitions) {
-                PlaceholderToolView(tool: .definitions)
+                DefinitionsToolView(session: session, lookupService: definitionsService)
             }
 
             Tab("Check", systemImage: SolverTool.scrabbleChecker.systemImage, value: .scrabbleChecker) {
@@ -491,6 +496,131 @@ private struct ScrabbleToolView: View {
     }
 }
 
+private struct DefinitionsToolView: View {
+    @ObservedObject var session: SolverSession
+    let lookupService: DefinitionsLookupService
+
+    @State private var presentationState: DefinitionsPresentationState = .idle
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                PatternEntryField(
+                    session: session,
+                    placeholder: "Example: solver or word game",
+                    instructions: "Enter a literal word or phrase to look it up in the bundled offline test definitions list."
+                )
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+        .task(id: queryFingerprint) {
+            await refreshDefinition()
+        }
+    }
+
+    private var queryState: DefinitionLookupQueryState {
+        DefinitionLookupQueryState(rawInput: session.rawPattern)
+    }
+
+    private var queryFingerprint: String {
+        switch queryState {
+        case .empty:
+            "empty"
+        case .invalid(let message):
+            "invalid:\(message)"
+        case .valid(let query):
+            "valid:\(query.lookupKey)"
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch presentationState {
+        case .idle:
+            SearchMessageCard(
+                title: "Start with a word",
+                message: "Enter a literal word or phrase above and the definitions tab will search the bundled offline test definitions list.",
+                symbol: "book.closed",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("definitions-status-card")
+        case .loading:
+            SearchMessageCard(
+                title: "Looking up definitions",
+                message: "The definitions tool is checking the bundled test definitions list on this device.",
+                symbol: "hourglass",
+                tint: .blue
+            )
+            .accessibilityIdentifier("definitions-status-card")
+        case .empty(let term):
+            SearchMessageCard(
+                title: "No definition for \(term)",
+                message: "Try another literal word or phrase from the test definitions list.",
+                symbol: "text.magnifyingglass",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("definitions-status-card")
+        case .invalid(let message):
+            SearchMessageCard(
+                title: "Fix the lookup first",
+                message: message,
+                symbol: "exclamationmark.triangle",
+                tint: .orange
+            )
+            .accessibilityIdentifier("definitions-status-card")
+        case .failed(let message):
+            SearchMessageCard(
+                title: "Definitions lookup unavailable",
+                message: message,
+                symbol: "xmark.octagon",
+                tint: .red
+            )
+            .accessibilityIdentifier("definitions-status-card")
+        case .result(let entry):
+            DefinitionResultCard(entry: entry)
+                .accessibilityIdentifier("definitions-result-card")
+        }
+    }
+
+    @MainActor
+    private func refreshDefinition() async {
+        switch queryState {
+        case .empty:
+            presentationState = .idle
+            return
+        case .invalid(let message):
+            presentationState = .invalid(message)
+            return
+        case .valid:
+            break
+        }
+
+        presentationState = .loading
+
+        guard case .valid(let query) = queryState else {
+            return
+        }
+
+        do {
+            let resolvedEntry = try await lookupService.lookup(query)
+
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            presentationState = resolvedEntry.map(DefinitionsPresentationState.result)
+                ?? .empty(query.lookupKey)
+        } catch is CancellationError {
+            return
+        } catch {
+            presentationState = .failed(error.localizedDescription)
+        }
+    }
+}
+
 private struct WordResultsCard: View {
     let entries: [String]
 
@@ -510,6 +640,35 @@ private struct WordResultsCard: View {
                 }
             }
         }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.3))
+        )
+    }
+}
+
+private struct DefinitionResultCard: View {
+    let entry: DefinitionEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(entry.word)
+                .font(.title3.weight(.semibold))
+
+            Text(entry.pronunciation)
+                .font(.body.monospaced())
+                .foregroundStyle(.secondary)
+
+            Text(entry.definition)
+                .font(.body)
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -598,6 +757,15 @@ private enum ScrabblePresentationState {
     case invalid(String)
     case failed(String)
     case results([ScrabbleMatch])
+}
+
+private enum DefinitionsPresentationState {
+    case idle
+    case loading
+    case empty(String)
+    case invalid(String)
+    case failed(String)
+    case result(DefinitionEntry)
 }
 
 struct ContentView_Previews: PreviewProvider {

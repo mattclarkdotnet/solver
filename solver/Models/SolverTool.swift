@@ -51,7 +51,7 @@ enum SolverTool: String, CaseIterable, Identifiable, Codable {
 
     var statusTitle: String {
         switch self {
-        case .crossword, .scrabble, .anagramSolver:
+        case .crossword, .scrabble, .anagramSolver, .definitions:
             "Ready now"
         default:
             "Planned next"
@@ -69,7 +69,7 @@ enum SolverTool: String, CaseIterable, Identifiable, Codable {
         case .anagramGenerator:
             "Generation tools will follow after the first search-focused tools are stable."
         case .definitions:
-            "Definitions will be bundled for offline use in a later release."
+            "Look up definitions from a separate bundled offline test definitions list."
         case .scrabbleChecker:
             "Offline word validation is planned after search and anagram workflows land."
         case .thesaurus:
