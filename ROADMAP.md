@@ -1,14 +1,12 @@
 # Roadmap
 
 ## Now
-- Add anagram solving using test crossword word list data.
+- Add definitions lookup using test dictionary data.
 
 ## Next
-- Add Scrabble search using test scrabble word list data.
+- Add thesaurus lookup using test thesaurus data.
 
 ## Later
-- Add definitions lookup using test dictionary data
-- Add thesaurus lookup using test thesaurus data
 - Add Scrabble word checking using test scrabble word list data
 - Add user preferences.
 - Add selectable default crossword word lists.
@@ -27,6 +25,8 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Add Scrabble search using test scrabble word list data.
+- Add anagram solving using test crossword word list data.
 - Refine the crossword tab into a focused live-search workflow with the pattern field at the top and results updating below inside the existing multi-tool shell.
 - Build the first usable offline Solver slice: shared pattern entry and parsing, tab-based app shell, and crossword search against a bundled word list.
 - Scaffold the iOS app in Xcode with baseline project documentation (`README.md`, `DESIGN.md`, `TESTING.md`, and `ROADMAP.md`).

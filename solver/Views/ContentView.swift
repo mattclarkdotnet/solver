@@ -2,14 +2,16 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var session = SolverSession()
-    private let searchService = CrosswordSearchService()
+    private let crosswordService = CrosswordSearchService()
+    private let scrabbleService = ScrabbleSearchService()
     private let anagramService = AnagramSearchService()
 
     var body: some View {
         NavigationStack {
             SolverHomeView(
                 session: session,
-                searchService: searchService,
+                crosswordService: crosswordService,
+                scrabbleService: scrabbleService,
                 anagramService: anagramService
             )
                 .navigationTitle("Solver")
@@ -19,13 +21,15 @@ struct ContentView: View {
 
 private struct SolverHomeView: View {
     @ObservedObject var session: SolverSession
-    let searchService: CrosswordSearchService
+    let crosswordService: CrosswordSearchService
+    let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
 
     var body: some View {
         ToolTabs(
             session: session,
-            searchService: searchService,
+            crosswordService: crosswordService,
+            scrabbleService: scrabbleService,
             anagramService: anagramService
         )
             .padding(.horizontal, 20)
@@ -71,17 +75,18 @@ private struct PatternEntryField: View {
 
 private struct ToolTabs: View {
     @ObservedObject var session: SolverSession
-    let searchService: CrosswordSearchService
+    let crosswordService: CrosswordSearchService
+    let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
 
     var body: some View {
         TabView(selection: $session.selectedTool) {
             Tab("Crossword", systemImage: SolverTool.crossword.systemImage, value: .crossword) {
-                CrosswordToolView(session: session, searchService: searchService)
+                CrosswordToolView(session: session, searchService: crosswordService)
             }
 
             Tab("Scrabble", systemImage: SolverTool.scrabble.systemImage, value: .scrabble) {
-                PlaceholderToolView(tool: .scrabble)
+                ScrabbleToolView(session: session, searchService: scrabbleService)
             }
 
             Tab("Anagram", systemImage: SolverTool.anagramSolver.systemImage, value: .anagramSolver) {
@@ -360,6 +365,132 @@ private struct AnagramToolView: View {
     }
 }
 
+private struct ScrabbleToolView: View {
+    @ObservedObject var session: SolverSession
+    let searchService: ScrabbleSearchService
+
+    @State private var presentationState: ScrabblePresentationState = .idle
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                PatternEntryField(
+                    session: session,
+                    placeholder: "Example: stare? or trades",
+                    instructions: "Enter the letters in your rack. Use `?` for blank tiles. Results can use any subset of the available tiles from the bundled test Scrabble list."
+                )
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+        .task(id: queryFingerprint) {
+            await refreshResults()
+        }
+    }
+
+    private var queryState: ScrabbleRackQueryState {
+        ScrabbleRackQueryState(rawInput: session.rawPattern)
+    }
+
+    private var queryFingerprint: String {
+        switch queryState {
+        case .empty:
+            "empty"
+        case .invalid(let message):
+            "invalid:\(message)"
+        case .valid(let query):
+            "valid:\(query.normalizedRack)"
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch presentationState {
+        case .idle:
+            SearchMessageCard(
+                title: "Start with rack tiles",
+                message: "Enter the tiles in your rack above and the Scrabble tab will show any words from the bundled test list that can be made from any subset of them.",
+                symbol: "textformat.abc",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("scrabble-status-card")
+        case .loading:
+            SearchMessageCard(
+                title: "Searching the Scrabble list",
+                message: "The Scrabble tool is checking the bundled test list on this device.",
+                symbol: "hourglass",
+                tint: .blue
+            )
+            .accessibilityIdentifier("scrabble-status-card")
+        case .empty(let rack):
+            SearchMessageCard(
+                title: "No words for \(rack)",
+                message: "Try another rack or add `?` for blank tiles.",
+                symbol: "text.magnifyingglass",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("scrabble-status-card")
+        case .invalid(let message):
+            SearchMessageCard(
+                title: "Fix the rack first",
+                message: message,
+                symbol: "exclamationmark.triangle",
+                tint: .orange
+            )
+            .accessibilityIdentifier("scrabble-status-card")
+        case .failed(let message):
+            SearchMessageCard(
+                title: "Scrabble search unavailable",
+                message: message,
+                symbol: "xmark.octagon",
+                tint: .red
+            )
+            .accessibilityIdentifier("scrabble-status-card")
+        case .results(let matches):
+            WordResultsCard(entries: matches.map(\.displayText))
+                .accessibilityIdentifier("scrabble-results-card")
+        }
+    }
+
+    @MainActor
+    private func refreshResults() async {
+        switch queryState {
+        case .empty:
+            presentationState = .idle
+            return
+        case .invalid(let message):
+            presentationState = .invalid(message)
+            return
+        case .valid:
+            break
+        }
+
+        presentationState = .loading
+
+        guard case .valid(let query) = queryState else {
+            return
+        }
+
+        do {
+            let resolvedMatches = try await searchService.search(query)
+
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            presentationState = resolvedMatches.isEmpty
+                ? .empty(query.normalizedRack)
+                : .results(resolvedMatches)
+        } catch is CancellationError {
+            return
+        } catch {
+            presentationState = .failed(error.localizedDescription)
+        }
+    }
+}
+
 private struct WordResultsCard: View {
     let entries: [String]
 
@@ -458,6 +589,15 @@ private enum AnagramPresentationState {
     case invalid(String)
     case failed(String)
     case results([AnagramMatch])
+}
+
+private enum ScrabblePresentationState {
+    case idle
+    case loading
+    case empty(String)
+    case invalid(String)
+    case failed(String)
+    case results([ScrabbleMatch])
 }
 
 struct ContentView_Previews: PreviewProvider {

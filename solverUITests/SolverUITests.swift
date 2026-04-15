@@ -80,4 +80,58 @@ final class SolverUITests: XCTestCase {
             app.staticTexts["Anagram solving currently supports letters only, without wildcards."].waitForExistence(timeout: 5)
         )
     }
+
+    @MainActor
+    func testScrabbleTabShowsSubsetMatchesFromRackTiles() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Scrabble"].tap()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("stare")
+
+        XCTAssertTrue(app.staticTexts["Arts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Star"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Art"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testScrabbleTabUsesBlankTilesInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Scrabble"].tap()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("crat?")
+
+        XCTAssertTrue(app.staticTexts["Crate"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Trace"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testScrabbleTabRejectsUnsupportedRackInputInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Scrabble"].tap()
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("sta-re")
+
+        XCTAssertTrue(app.staticTexts["Fix the rack first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["Scrabble search supports rack letters plus ? blank tiles only."].waitForExistence(timeout: 5)
+        )
+    }
 }
