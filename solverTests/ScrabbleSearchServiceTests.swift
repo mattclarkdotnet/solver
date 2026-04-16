@@ -51,7 +51,7 @@ final class ScrabbleSearchServiceTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(matches.map(\.displayText), ["Stare"])
+        XCTAssertEqual(matches.map(\.displayText), ["Rates", "Stare"])
     }
 
     func testDoesNotLetEndLetterDoubleCountAsOtherBoardLetter() async throws {

@@ -36,7 +36,7 @@ This document explains how the automated test suite should support the strategy 
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
+  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
 
 ## Notable edge cases
 
@@ -67,6 +67,5 @@ This document explains how the automated test suite should support the strategy 
 
 ## Current gaps
 
-- The UI suite still needs broader automated coverage for switching between implemented tools with one shared input session.
 - Property testing is still desirable for parser and matcher logic once the current UI slice settles.
 - Large-list performance and ranking coverage will need to expand when bigger bundled datasets arrive.
