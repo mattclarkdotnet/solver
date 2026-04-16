@@ -9,13 +9,19 @@ final class SolverSessionTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: #function) }
 
         let session = SolverSession(defaults: defaults)
-        session.rawPattern = "c?t"
-        session.selectedTool = .thesaurus
+        session.rawPattern = "stare?"
+        session.scrabbleStartLetter = "s"
+        session.scrabbleEndLetter = "e"
+        session.scrabbleOtherLetters = "ta"
+        session.selectedTool = .scrabble
 
         let restored = SolverSession(defaults: defaults)
 
-        XCTAssertEqual(restored.rawPattern, "c?t")
-        XCTAssertEqual(restored.selectedTool, .thesaurus)
+        XCTAssertEqual(restored.rawPattern, "stare?")
+        XCTAssertEqual(restored.scrabbleStartLetter, "s")
+        XCTAssertEqual(restored.scrabbleEndLetter, "e")
+        XCTAssertEqual(restored.scrabbleOtherLetters, "ta")
+        XCTAssertEqual(restored.selectedTool, .scrabble)
     }
 
     func testResetLaunchArgumentClearsPersistedState() {
@@ -24,6 +30,9 @@ final class SolverSessionTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: #function) }
 
         defaults.set("c?t", forKey: "solver.rawPattern")
+        defaults.set("s", forKey: "solver.scrabbleStartLetter")
+        defaults.set("e", forKey: "solver.scrabbleEndLetter")
+        defaults.set("ta", forKey: "solver.scrabbleOtherLetters")
         defaults.set(SolverTool.crossword.rawValue, forKey: "solver.selectedTool")
 
         let session = SolverSession(
@@ -32,8 +41,14 @@ final class SolverSessionTests: XCTestCase {
         )
 
         XCTAssertEqual(session.rawPattern, "")
+        XCTAssertEqual(session.scrabbleStartLetter, "")
+        XCTAssertEqual(session.scrabbleEndLetter, "")
+        XCTAssertEqual(session.scrabbleOtherLetters, "")
         XCTAssertEqual(session.selectedTool, .crossword)
         XCTAssertNil(defaults.string(forKey: "solver.rawPattern"))
+        XCTAssertNil(defaults.string(forKey: "solver.scrabbleStartLetter"))
+        XCTAssertNil(defaults.string(forKey: "solver.scrabbleEndLetter"))
+        XCTAssertNil(defaults.string(forKey: "solver.scrabbleOtherLetters"))
         XCTAssertNil(defaults.string(forKey: "solver.selectedTool"))
     }
 }

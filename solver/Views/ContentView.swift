@@ -387,8 +387,9 @@ private struct ScrabbleToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: stare? or trades",
-                    instructions: "Enter the letters in your rack. Use `?` for blank tiles. Results can use any subset of the available tiles from the bundled test Scrabble list."
+                    instructions: "Enter the letters in your rack. Use `?` for blank tiles. Add board letters below to constrain where known letters already appear in the word."
                 )
+                ScrabbleBoardFields(session: session)
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -400,8 +401,13 @@ private struct ScrabbleToolView: View {
         }
     }
 
-    private var queryState: ScrabbleRackQueryState {
-        ScrabbleRackQueryState(rawInput: session.rawPattern)
+    private var queryState: ScrabbleQueryState {
+        ScrabbleQueryState(
+            rackInput: session.rawPattern,
+            startLetterInput: session.scrabbleStartLetter,
+            endLetterInput: session.scrabbleEndLetter,
+            otherLettersInput: session.scrabbleOtherLetters
+        )
     }
 
     private var queryFingerprint: String {
@@ -411,7 +417,7 @@ private struct ScrabbleToolView: View {
         case .invalid(let message):
             "invalid:\(message)"
         case .valid(let query):
-            "valid:\(query.normalizedRack)"
+            "valid:\(query.normalizedDescription)"
         }
     }
 
@@ -421,7 +427,7 @@ private struct ScrabbleToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with rack tiles",
-                message: "Enter the tiles in your rack above and the Scrabble tab will show any words from the bundled test list that can be made from any subset of them.",
+                message: "Enter your rack above, then optionally add board letters to constrain the start, end, or interior letters of a matching word from the bundled test list.",
                 symbol: "textformat.abc",
                 tint: .secondary
             )
@@ -437,14 +443,14 @@ private struct ScrabbleToolView: View {
         case .empty(let rack):
             SearchMessageCard(
                 title: "No words for \(rack)",
-                message: "Try another rack or add `?` for blank tiles.",
+                message: "Try another rack, adjust the board letters, or add `?` for blank tiles.",
                 symbol: "text.magnifyingglass",
                 tint: .secondary
             )
             .accessibilityIdentifier("scrabble-status-card")
         case .invalid(let message):
             SearchMessageCard(
-                title: "Fix the rack first",
+                title: "Fix the Scrabble letters first",
                 message: message,
                 symbol: "exclamationmark.triangle",
                 tint: .orange
@@ -491,13 +497,93 @@ private struct ScrabbleToolView: View {
             }
 
             presentationState = resolvedMatches.isEmpty
-                ? .empty(query.normalizedRack)
+                ? .empty(query.normalizedDescription)
                 : .results(resolvedMatches)
         } catch is CancellationError {
             return
         } catch {
             presentationState = .failed(error.localizedDescription)
         }
+    }
+}
+
+private struct ScrabbleBoardFields: View {
+    @ObservedObject var session: SolverSession
+
+    @FocusState private var focusedField: Field?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Board letters")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                boardField(
+                    title: "Start letter",
+                    text: $session.scrabbleStartLetter,
+                    placeholder: "A",
+                    identifier: "scrabble-start-letter-field",
+                    field: .start
+                )
+
+                boardField(
+                    title: "End letter",
+                    text: $session.scrabbleEndLetter,
+                    placeholder: "Z",
+                    identifier: "scrabble-end-letter-field",
+                    field: .end
+                )
+            }
+
+            boardField(
+                title: "Other letters",
+                text: $session.scrabbleOtherLetters,
+                placeholder: "Placed letters already on the board",
+                identifier: "scrabble-other-letters-field",
+                field: .other
+            )
+
+            Text("Board letters stay fixed on the board. If start or end is empty, `other letters` can still satisfy that edge of the word.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func boardField(
+        title: String,
+        text: Binding<String>,
+        placeholder: String,
+        identifier: String,
+        field: Field
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            TextField(placeholder, text: text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.body.monospaced())
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .focused($focusedField, equals: field)
+                .accessibilityIdentifier(identifier)
+                .onSubmit {
+                    focusedField = nil
+                }
+        }
+    }
+
+    private enum Field: Hashable {
+        case start
+        case end
+        case other
     }
 }
 

@@ -2,20 +2,20 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the new thesaurus-lookup slice described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current Scrabble word-finder refinement described in `PLAN.md`.
 
 ## Test layers
 
 - Parser unit tests cover normalization of the word-pattern syntax from `README.md`, including letters, single-character wildcards, multi-character wildcards, spaces, and hyphens.
-- Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack matching, definitions lookup, thesaurus lookup, no-match cases, and repeated searches.
+- Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, thesaurus lookup, no-match cases, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
-- Persistence tests cover saving and restoring the current pattern and selected tool using on-device storage only.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially live thesaurus lookup, synonym presentation, unsupported lookup input, tab coherence, and offline operation.
+- Persistence tests cover saving and restoring the current pattern, Scrabble-specific board fields, and selected tool using on-device storage only.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially the Scrabble tab's combined rack-plus-board-letter flow, inline invalid input, tab coherence, and offline operation.
 
 ## Current coverage target
 
-- Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack matching, definitions lookup, and thesaurus lookup because they define the core behavior of the currently implemented tools.
-- Add behavioral coverage for the thesaurus tab's live-search flow before broadening into every future tool.
+- Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, and thesaurus lookup because they define the core behavior of the currently implemented tools.
+- Add behavioral coverage for the Scrabble tab's live-search flow before broadening into every future tool.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
 
@@ -28,7 +28,7 @@ This document explains how the automated test suite should support the strategy 
 - `AnagramSearchTests`
   Covers exact-letter anagram matching, exclusion of the source word, unsupported input shapes, and filtering of non-anagram entries from the local dataset.
 - `ScrabbleSearchTests`
-  Covers subset-of-rack matching, blank-tile substitution, unsupported rack input, and word ordering against the local test Scrabble list.
+  Covers subset-of-rack matching, blank-tile substitution, board-letter constraints, invalid Scrabble field input, and word ordering against the local test Scrabble list.
 - `DefinitionsLookupTests`
   Covers exact lookup, phrase lookup, unsupported input, and parsing of the bundled definitions-record format.
 - `ThesaurusLookupTests`
@@ -36,7 +36,7 @@ This document explains how the automated test suite should support the strategy 
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, live Scrabble matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
+  Covers top-level user flows from `SCENARIOS.md`, including launch, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
 
 ## Notable edge cases
 
@@ -48,6 +48,8 @@ This document explains how the automated test suite should support the strategy 
 - Multi-word input sent to the anagram tool.
 - Blank tiles used in the Scrabble rack.
 - Unsupported non-rack characters sent to the Scrabble tool.
+- Overlong start or end letters sent to the Scrabble tool.
+- `Other letters` consuming an edge position only when that edge is otherwise unconstrained.
 - Invalid record formatting in the bundled definitions dataset.
 - Wildcard-heavy input sent to the definitions tool.
 - Invalid record formatting in the bundled thesaurus dataset.

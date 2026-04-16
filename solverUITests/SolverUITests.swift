@@ -107,6 +107,27 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
+    func testScrabbleTabUsesBoardLettersAlongsideRackTiles() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Scrabble"].tap()
+
+        let rackField = app.textFields["pattern-field"]
+        XCTAssertTrue(rackField.waitForExistence(timeout: 5))
+        rackField.tap()
+        rackField.typeText("star")
+
+        let otherLettersField = app.textFields["scrabble-other-letters-field"]
+        XCTAssertTrue(otherLettersField.waitForExistence(timeout: 5))
+        otherLettersField.tap()
+        otherLettersField.typeText("e")
+
+        XCTAssertTrue(app.staticTexts["Stare"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testScrabbleTabUsesBlankTilesInline() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")
@@ -124,6 +145,28 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
+    func testScrabbleTabRejectsOverlongStartLetterInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        app.tabBars.buttons["Scrabble"].tap()
+
+        let rackField = app.textFields["pattern-field"]
+        XCTAssertTrue(rackField.waitForExistence(timeout: 5))
+        rackField.tap()
+        rackField.typeText("star")
+
+        let startLetterField = app.textFields["scrabble-start-letter-field"]
+        XCTAssertTrue(startLetterField.waitForExistence(timeout: 5))
+        startLetterField.tap()
+        startLetterField.typeText("st")
+
+        XCTAssertTrue(app.staticTexts["Fix the Scrabble letters first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Start letter must be empty or a single letter."].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testScrabbleTabRejectsUnsupportedRackInputInline() throws {
         let app = XCUIApplication()
         app.launchArguments.append("UITEST_RESET_STATE")
@@ -136,7 +179,7 @@ final class SolverUITests: XCTestCase {
         patternField.tap()
         patternField.typeText("sta-re")
 
-        XCTAssertTrue(app.staticTexts["Fix the rack first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Fix the Scrabble letters first"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             app.staticTexts["Scrabble search supports rack letters plus ? blank tiles only."].waitForExistence(timeout: 5)
         )

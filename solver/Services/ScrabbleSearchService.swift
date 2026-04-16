@@ -13,6 +13,135 @@ struct ScrabbleRackQuery: Hashable, Sendable {
     }
 }
 
+struct ScrabbleBoardQuery: Hashable, Sendable {
+    let startLetter: Character?
+    let endLetter: Character?
+    let otherLetters: String
+
+    var normalizedDescription: String {
+        [
+            startLetter.map(String.init) ?? "_",
+            otherLetters.isEmpty ? "_" : otherLetters,
+            endLetter.map(String.init) ?? "_"
+        ].joined(separator: " ")
+    }
+
+    var constrainedLettersCount: Int {
+        (startLetter == nil ? 0 : 1) + otherLetters.count + (endLetter == nil ? 0 : 1)
+    }
+}
+
+struct ScrabbleQuery: Hashable, Sendable {
+    let rack: ScrabbleRackQuery
+    let board: ScrabbleBoardQuery
+
+    var normalizedRack: String {
+        rack.normalizedRack
+    }
+
+    var normalizedDescription: String {
+        board.constrainedLettersCount == 0
+            ? rack.normalizedRack
+            : "\(rack.normalizedRack) | \(board.normalizedDescription)"
+    }
+}
+
+enum ScrabbleQueryState: Equatable, Sendable {
+    case empty
+    case invalid(message: String)
+    case valid(ScrabbleQuery)
+
+    init(
+        rackInput: String,
+        startLetterInput: String,
+        endLetterInput: String,
+        otherLettersInput: String
+    ) {
+        switch ScrabbleRackQueryState(rawInput: rackInput) {
+        case .empty:
+            self = .empty
+            return
+        case .invalid(let message):
+            self = .invalid(message: message)
+            return
+        case .valid:
+            break
+        }
+
+        do {
+            let board = try ScrabbleQueryState.parseBoardQuery(
+                startLetterInput: startLetterInput,
+                endLetterInput: endLetterInput,
+                otherLettersInput: otherLettersInput
+            )
+
+            guard case .valid(let rack) = ScrabbleRackQueryState(rawInput: rackInput) else {
+                self = .empty
+                return
+            }
+
+            self = .valid(ScrabbleQuery(rack: rack, board: board))
+        } catch let error as ScrabbleBoardQueryError {
+            self = .invalid(message: error.localizedDescription)
+        } catch {
+            self = .invalid(message: "Scrabble board letters could not be parsed.")
+        }
+    }
+
+    private static func parseBoardQuery(
+        startLetterInput: String,
+        endLetterInput: String,
+        otherLettersInput: String
+    ) throws -> ScrabbleBoardQuery {
+        let startLetter = try parseEdgeLetter(
+            startLetterInput,
+            position: "Start"
+        )
+        let endLetter = try parseEdgeLetter(
+            endLetterInput,
+            position: "End"
+        )
+        let otherLetters = try parseOtherLetters(otherLettersInput)
+
+        return ScrabbleBoardQuery(
+            startLetter: startLetter,
+            endLetter: endLetter,
+            otherLetters: otherLetters
+        )
+    }
+
+    private static func parseEdgeLetter(
+        _ rawValue: String,
+        position: String
+    ) throws -> Character? {
+        let normalized = rawValue
+            .lowercased()
+            .filter { $0.isWhitespace == false && $0.isNewline == false }
+
+        guard normalized.isEmpty == false else {
+            return nil
+        }
+
+        guard normalized.count == 1, let character = normalized.first, character.isASCII, character.isLetter else {
+            throw ScrabbleBoardQueryError.invalidEdgeLetter(position: position)
+        }
+
+        return character
+    }
+
+    private static func parseOtherLetters(_ rawValue: String) throws -> String {
+        let normalized = rawValue
+            .lowercased()
+            .filter { $0.isWhitespace == false && $0.isNewline == false }
+
+        guard normalized.allSatisfy({ $0.isASCII && $0.isLetter }) else {
+            throw ScrabbleBoardQueryError.invalidOtherLetters
+        }
+
+        return normalized
+    }
+}
+
 enum ScrabbleRackQueryState: Equatable, Sendable {
     case empty
     case invalid(message: String)
@@ -88,7 +217,7 @@ struct ScrabbleSearchService: Sendable {
         }
     }
 
-    func search(_ query: ScrabbleRackQuery) async throws -> [ScrabbleMatch] {
+    func search(_ query: ScrabbleQuery) async throws -> [ScrabbleMatch] {
         await Task.yield()
 
         return try loadEntries()
@@ -109,15 +238,74 @@ struct ScrabbleSearchService: Sendable {
         try entryLoader()
     }
 
-    private func canFormWord(_ entry: ScrabbleEntry, from query: ScrabbleRackQuery) -> Bool {
-        guard entry.word.count <= query.tileCount else {
+    private func canFormWord(_ entry: ScrabbleEntry, from query: ScrabbleQuery) -> Bool {
+        guard entry.word.count <= query.rack.tileCount + query.board.constrainedLettersCount else {
             return false
         }
 
-        var availableCounts = letterCounts(for: query.letters)
-        var blanksRemaining = query.blankCount
+        let characters = Array(entry.word)
+        let boardIndexes = matchedBoardIndexes(for: characters, board: query.board)
 
-        for character in entry.word {
+        guard let boardIndexes else {
+            return false
+        }
+
+        let rackLetters = characters.enumerated()
+            .filter { boardIndexes.contains($0.offset) == false }
+            .map(\.element)
+
+        guard rackLetters.count <= query.rack.tileCount else {
+            return false
+        }
+
+        return rackCanSupply(rackLetters, from: query.rack)
+    }
+
+    private func matchedBoardIndexes(
+        for characters: [Character],
+        board: ScrabbleBoardQuery
+    ) -> Set<Int>? {
+        guard characters.isEmpty == false else {
+            return nil
+        }
+
+        var matchedIndexes: Set<Int> = []
+
+        if let startLetter = board.startLetter {
+            guard characters.first == startLetter else {
+                return nil
+            }
+            matchedIndexes.insert(0)
+        }
+
+        if let endLetter = board.endLetter {
+            guard let lastIndex = characters.indices.last, characters[lastIndex] == endLetter else {
+                return nil
+            }
+            matchedIndexes.insert(lastIndex)
+        }
+
+        for otherLetter in board.otherLetters {
+            guard let matchingIndex = characters.indices.first(where: { index in
+                matchedIndexes.contains(index) == false && characters[index] == otherLetter
+            }) else {
+                return nil
+            }
+
+            matchedIndexes.insert(matchingIndex)
+        }
+
+        return matchedIndexes
+    }
+
+    private func rackCanSupply(
+        _ letters: [Character],
+        from rack: ScrabbleRackQuery
+    ) -> Bool {
+        var availableCounts = letterCounts(for: rack.letters)
+        var blanksRemaining = rack.blankCount
+
+        for character in letters {
             let available = availableCounts[character, default: 0]
             if available > 0 {
                 availableCounts[character] = available - 1
@@ -195,5 +383,19 @@ private struct ScrabbleEntry: Hashable, Sendable {
         }
 
         self.word = normalized
+    }
+}
+
+private enum ScrabbleBoardQueryError: LocalizedError {
+    case invalidEdgeLetter(position: String)
+    case invalidOtherLetters
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidEdgeLetter(let position):
+            "\(position) letter must be empty or a single letter."
+        case .invalidOtherLetters:
+            "Other board letters support literal letters only."
+        }
     }
 }

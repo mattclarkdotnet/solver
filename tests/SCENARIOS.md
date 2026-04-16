@@ -2,48 +2,49 @@
 
 ## Current roadmap item
 
-These scenarios describe the current thesaurus-lookup slice from `PLAN.md` and the `Now` item in `ROADMAP.md`.
+These scenarios describe the current Scrabble word-finder refinement from `PLAN.md` and the `Now` item in `ROADMAP.md`.
 
-## Thesaurus tab layout
+## Scrabble tab layout
 
-### Scenario: Show a focused thesaurus lookup surface
-GIVEN Solver is open on the thesaurus tab
+### Scenario: Show rack and board inputs together
+GIVEN Solver is open on the Scrabble tab
 WHEN the screen appears
-THEN the pattern entry field is shown at the top of the tab
+THEN the main rack field is shown at the top of the tab
+AND dedicated `start letter`, `end letter`, and `other letters` board fields are shown below it
 AND the results region is directly below it
-AND there is no separate thesaurus search button
+AND there is no separate Scrabble search button
 
-## Live thesaurus results
+## Live Scrabble results
 
-### Scenario: Find synonyms from the bundled thesaurus list
-GIVEN the bundled test thesaurus list contains an entry for `solver`
-WHEN the user enters `solver` in the thesaurus field
-THEN the app shows the local synonym result without requiring a manual search action
+### Scenario: Find words from the rack alone
+GIVEN the bundled test Scrabble list contains entries that can be made from the current rack
+WHEN the user enters rack letters in the main Scrabble field
+THEN the app shows matching offline words without requiring a manual search action
 AND the results are produced without requiring network access
 
-### Scenario: Show the looked-up term with its synonyms
-GIVEN the bundled test thesaurus list contains a record with a word and a synonym list
-WHEN the user opens that thesaurus entry
-THEN the app shows the looked-up term together with its bundled synonyms in the result view
+### Scenario: Use board letters with the rack
+GIVEN the bundled test Scrabble list contains a word that needs both rack tiles and board letters
+WHEN the user enters rack letters plus one or more board-letter constraints
+THEN the app shows only words that satisfy both the rack and the fixed board letters
 
 ### Scenario: Show no-results feedback inline
-GIVEN the bundled test thesaurus list contains no entry for the current lookup term
-WHEN the user enters that term in the thesaurus field
+GIVEN the bundled test Scrabble list contains no entry for the current rack and board-letter combination
+WHEN the user enters that combination on the Scrabble tab
 THEN the app shows an explicit empty-results state in the results region
 AND the app does not imply that more results could appear from an online source
 
 ## Unsupported and empty input
 
 ### Scenario: Handle empty input inline
-GIVEN Solver is open on the thesaurus tab
-WHEN the user leaves the lookup field empty
+GIVEN Solver is open on the Scrabble tab
+WHEN the user leaves the main rack field empty
 THEN the results region shows guidance for entering a pattern
 AND the app does not crash or present misleading results
 
-### Scenario: Reject unsupported lookup input
-GIVEN Solver is open on the thesaurus tab
-WHEN the user enters unsupported characters such as `solv?r`
-THEN the app explains that thesaurus lookup currently supports literal words or phrases only
+### Scenario: Reject invalid board letters
+GIVEN Solver is open on the Scrabble tab
+WHEN the user enters an overlong start letter or unsupported `other letters` content
+THEN the app explains the limitation inline
 AND the app leaves previous results out of the way rather than presenting them as current
 
 ## Shared tab state
@@ -52,11 +53,11 @@ AND the app leaves previous results out of the way rather than presenting them a
 GIVEN the user has entered a valid pattern
 WHEN the user switches between available solver tabs
 THEN each tab reads the same current query
-AND returning to the thesaurus tab shows the same lookup term in its local entry field
+AND returning to the Scrabble tab shows the same rack value and board-letter fields in their local controls
 
 ### Scenario: Update all tools after editing the pattern
-GIVEN the user has already viewed live synonym results
-WHEN the user edits the shared pattern through the thesaurus tab
+GIVEN the user has already viewed live Scrabble results
+WHEN the user edits the rack or board letters through the Scrabble tab
 THEN the app updates or invalidates dependent tool state consistently
 AND no tab continues showing results for the old pattern as if they were current
 
@@ -72,7 +73,7 @@ AND restored state comes entirely from on-device storage
 
 ### Scenario: Use Solver with no network connectivity
 GIVEN the device has no network connectivity
-WHEN the user enters a valid lookup term on the thesaurus tab
+WHEN the user enters a valid rack and board-letter combination on the Scrabble tab
 THEN the feature works normally using bundled or on-device data
 AND the app does not block on connectivity checks or online fallbacks
 

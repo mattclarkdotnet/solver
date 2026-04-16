@@ -1,13 +1,12 @@
 # Roadmap
 
 ## Now
-- Add thesaurus lookup using test thesaurus data.
-
-## Next
 - Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab
 
-## Later
+## Next
 - Remove the title header
+
+## Later
 - Make the tool list horizontally scrollable instead of having the "..." for more tools
 - Put a border around the main input field
 - Add user preferences.
@@ -27,6 +26,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Add thesaurus lookup using test thesaurus data.
 - Add definitions lookup using test dictionary data.
 - Add Scrabble search using test scrabble word list data.
 - Add anagram solving using test crossword word list data.
