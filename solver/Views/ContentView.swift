@@ -38,7 +38,6 @@ private struct SolverHomeView: View {
             thesaurusService: thesaurusService
         )
             .padding(.horizontal, 20)
-            .padding(.top, 20)
             .padding(.bottom, 12)
             .background(Color(.systemGroupedBackground))
     }
@@ -87,36 +86,103 @@ private struct ToolTabs: View {
     let thesaurusService: ThesaurusLookupService
 
     var body: some View {
-        TabView(selection: $session.selectedTool) {
-            Tab("Crossword", systemImage: SolverTool.crossword.systemImage, value: .crossword) {
-                CrosswordToolView(session: session, searchService: crosswordService)
-            }
+        VStack(alignment: .leading, spacing: 16) {
+            // Keep the selector outside the tool scroll views so it stays reachable while tool content scrolls.
+            ToolSelector(selectedTool: $session.selectedTool)
+            selectedToolContent
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(.systemGroupedBackground))
+    }
 
-            Tab("Scrabble", systemImage: SolverTool.scrabble.systemImage, value: .scrabble) {
-                ScrabbleToolView(session: session, searchService: scrabbleService)
-            }
+    @ViewBuilder
+    private var selectedToolContent: some View {
+        switch session.selectedTool {
+        case .crossword:
+            CrosswordToolView(session: session, searchService: crosswordService)
+        case .scrabble:
+            ScrabbleToolView(session: session, searchService: scrabbleService)
+        case .anagramSolver:
+            AnagramToolView(session: session, searchService: anagramService)
+        case .anagramGenerator:
+            PlaceholderToolView(tool: .anagramGenerator)
+        case .definitions:
+            DefinitionsToolView(session: session, lookupService: definitionsService)
+        case .scrabbleChecker:
+            PlaceholderToolView(tool: .scrabbleChecker)
+        case .thesaurus:
+            ThesaurusToolView(session: session, lookupService: thesaurusService)
+        }
+    }
+}
 
-            Tab("Anagram", systemImage: SolverTool.anagramSolver.systemImage, value: .anagramSolver) {
-                AnagramToolView(session: session, searchService: anagramService)
-            }
+private struct ToolSelector: View {
+    @Binding var selectedTool: SolverTool
 
-            Tab("Generator", systemImage: SolverTool.anagramGenerator.systemImage, value: .anagramGenerator) {
-                PlaceholderToolView(tool: .anagramGenerator)
-            }
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 10) {
+                    ForEach(SolverTool.allCases) { tool in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTool = tool
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: tool.systemImage)
+                                    .font(.footnote.weight(.semibold))
+                                    .accessibilityHidden(true)
 
-            Tab("Define", systemImage: SolverTool.definitions.systemImage, value: .definitions) {
-                DefinitionsToolView(session: session, lookupService: definitionsService)
+                                Text(tool.selectorTitle)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(selectedTool == tool ? Color.white : Color.primary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(selectedTool == tool ? Color.accentColor : Color(.secondarySystemBackground))
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(
+                                        selectedTool == tool ? Color.clear : Color(.separator).opacity(0.3)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .id(tool.id)
+                        .accessibilityIdentifier("tool-button-\(tool.rawValue)")
+                        .accessibilityLabel(tool.selectorTitle)
+                        .accessibilityAddTraits(selectedTool == tool ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, 2)
             }
-
-            Tab("Check", systemImage: SolverTool.scrabbleChecker.systemImage, value: .scrabbleChecker) {
-                PlaceholderToolView(tool: .scrabbleChecker)
+            .frame(height: 48, alignment: .top)
+            .accessibilityIdentifier("tool-selector")
+            .onAppear {
+                scrollToSelectedTool(with: proxy, animated: false)
             }
-
-            Tab("Thesaurus", systemImage: SolverTool.thesaurus.systemImage, value: .thesaurus) {
-                ThesaurusToolView(session: session, lookupService: thesaurusService)
+            .onChange(of: selectedTool) { _, _ in
+                scrollToSelectedTool(with: proxy, animated: true)
             }
         }
-        .background(Color(.systemGroupedBackground))
+    }
+
+    private func scrollToSelectedTool(with proxy: ScrollViewProxy, animated: Bool) {
+        let action = {
+            proxy.scrollTo(selectedTool.id, anchor: .center)
+        }
+
+        if animated {
+            withAnimation(.easeInOut(duration: 0.2), action)
+        } else {
+            action()
+        }
     }
 }
 

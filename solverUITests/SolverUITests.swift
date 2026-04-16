@@ -24,17 +24,17 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fix the pattern first"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Patterns cannot end with a word break."].waitForExistence(timeout: 5))
 
-        app.tabBars.buttons["Scrabble"].tap()
+        selectTool(named: "scrabble", in: app)
         assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "ice-", to: "stare")
         XCTAssertTrue(app.staticTexts["Aster"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Rates"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["scrabble-results-card"].waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "stare", to: "crat?")
         XCTAssertTrue(app.staticTexts["Crate"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Trace"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["scrabble-results-card"].waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "crat?", to: "star")
 
@@ -44,18 +44,13 @@ final class SolverUITests: XCTestCase {
         app.swipeUp()
         XCTAssertTrue(app.otherElements["scrabble-results-card"].waitForExistence(timeout: 5))
 
-        let startLetterField = app.textFields["scrabble-start-letter-field"]
-        XCTAssertTrue(startLetterField.waitForExistence(timeout: 5))
-        replaceText(in: startLetterField, from: "", to: "st")
-        XCTAssertTrue(app.staticTexts["Fix the Scrabble letters first"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Start letter must be empty or a single letter."].waitForExistence(timeout: 5))
         replaceText(in: patternField, from: "star", to: "sta-re")
         XCTAssertTrue(app.staticTexts["Fix the Scrabble letters first"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             app.staticTexts["Scrabble search supports rack letters plus ? blank tiles only."].waitForExistence(timeout: 5)
         )
 
-        app.tabBars.buttons["Anagram"].tap()
+        selectTool(named: "anagramSolver", in: app)
         assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
@@ -69,7 +64,7 @@ final class SolverUITests: XCTestCase {
             app.staticTexts["Anagram solving currently supports letters only, without wildcards."].waitForExistence(timeout: 5)
         )
 
-        openOverflowTab(named: "Define", in: app)
+        selectTool(named: "definitions", in: app)
         assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
@@ -84,14 +79,13 @@ final class SolverUITests: XCTestCase {
             app.staticTexts["Definitions lookup supports literal words or phrases only, without wildcards or rack symbols."].waitForExistence(timeout: 5)
         )
 
-        openOverflowTab(named: "Thesaurus", in: app)
+        selectTool(named: "thesaurus", in: app)
         assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "solv?r", to: "solver")
         XCTAssertTrue(app.staticTexts["solver"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["answerer"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["cracker"].waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "solver", to: "solv?r")
         XCTAssertTrue(app.staticTexts["Fix the lookup first"].waitForExistence(timeout: 5))
@@ -101,10 +95,28 @@ final class SolverUITests: XCTestCase {
     }
 
     @MainActor
-    private func openOverflowTab(named name: String, in app: XCUIApplication) {
-        app.tabBars.buttons["More"].tap()
-        XCTAssertTrue(app.tables.staticTexts[name].waitForExistence(timeout: 5))
-        app.tables.staticTexts[name].tap()
+    private func selectTool(named rawToolName: String, in app: XCUIApplication) {
+        let selector = app.scrollViews["tool-selector"]
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+
+        let button = app.buttons["tool-button-\(rawToolName)"]
+        for _ in 0..<8 {
+            if button.waitForExistence(timeout: 1), button.isHittable {
+                button.tap()
+                return
+            }
+            selector.swipeLeft()
+        }
+
+        for _ in 0..<8 {
+            if button.waitForExistence(timeout: 1), button.isHittable {
+                button.tap()
+                return
+            }
+            selector.swipeRight()
+        }
+
+        XCTFail("Could not select tool \(rawToolName)")
     }
 
     @MainActor

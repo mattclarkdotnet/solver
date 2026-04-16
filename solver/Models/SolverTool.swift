@@ -30,6 +30,25 @@ enum SolverTool: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var selectorTitle: String {
+        switch self {
+        case .crossword:
+            "Crossword"
+        case .scrabble:
+            "Scrabble"
+        case .anagramSolver:
+            "Anagram"
+        case .anagramGenerator:
+            "Generator"
+        case .definitions:
+            "Define"
+        case .scrabbleChecker:
+            "Check"
+        case .thesaurus:
+            "Thesaurus"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .crossword:

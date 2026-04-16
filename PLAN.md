@@ -1,30 +1,31 @@
 # Plan
 
 ## Roadmap alignment
-- This plan delivers the current `ROADMAP.md` `Now` item by removing the visible title header from the app shell while preserving the existing multi-tool navigation and layout.
+- This plan delivers the current `ROADMAP.md` `Now` item by replacing the current overflowing tab behavior with a horizontally scrollable tool list that keeps all tools directly reachable without the `...` overflow path.
 
 ## Objective
-- Ship a simpler top-level layout that no longer shows the `Solver` title header above the tool content, without changing the behavior of the implemented tools.
+- Ship a multi-tool selector that scrolls horizontally to reveal all tools in one continuous list while preserving the existing tool-selection behavior and implemented tool workflows.
 
 ## Assumptions
-- This slice removes the currently visible navigation title rather than replacing it with a different heading, toolbar label, or custom in-content header.
-- The multi-tool shell, tab structure, shared input behavior, and offline tool workflows should remain otherwise unchanged.
-- The first visible controls in each implemented tool should remain the tool-specific content, such as the pattern field or Scrabble board-letter fields, not a replacement title row.
-- Navigation infrastructure may stay in place internally if that keeps the implementation simple and does not reintroduce a visible header.
-- Existing accessibility for the tool content should be preserved even though the visible title is removed.
+- This slice changes the tool-selection UI only; it does not add, remove, rename, or reorder solver tools beyond what is necessary to present them in a horizontally scrollable list.
+- The intended outcome is that users can reach tools like `Define` and `Thesaurus` directly from the main tool list, without first opening a `More` or `...` overflow destination.
+- The scrollable tool list should continue to reflect and control the shared selected-tool state already stored in `SolverSession`.
+- The horizontal tool selector should remain usable on compact iPhone layouts and should not hide the currently selected tool when switching between implemented and placeholder tools.
+- Offline-only behavior, shared query persistence, and the existing live tool content should remain unchanged by this UI refactor.
 
 ## Scenario mapping
-- `Launch without title chrome`: GIVEN the app launches into the existing multi-tool shell, WHEN the first implemented tool appears, THEN the screen does not show the visible `Solver` title header above the tool content.
-- `Cross-tool layout consistency`: GIVEN the user switches between implemented tools, WHEN each tool screen appears, THEN the visible layout starts with tool content rather than a repeated app title header.
-- `No behavioral regression`: GIVEN the user uses crossword, Scrabble, anagram, definitions, or thesaurus workflows, WHEN the title header has been removed, THEN the existing live search and lookup behavior still works as before.
-- `Offline operation`: GIVEN the device has no network connectivity, WHEN the app launches or the user switches tools, THEN removing the header has no effect on the offline-only behavior of the implemented features.
+- `Show all tools without overflow`: GIVEN Solver has more tools than can fit on screen at once, WHEN the tool selector appears, THEN the user can horizontally scroll to reveal additional tools instead of using a `...` overflow path.
+- `Select an off-screen tool directly`: GIVEN a tool starts outside the initially visible portion of the selector, WHEN the user scrolls horizontally and taps that tool, THEN Solver switches directly to that tool.
+- `Keep selected tool visible`: GIVEN the user switches to a tool that is not initially visible, WHEN the tool becomes selected, THEN the selector keeps that selection visually coherent rather than losing track of it.
+- `No behavioral regression`: GIVEN the user selects crossword, Scrabble, anagram, definitions, thesaurus, or a placeholder tool, WHEN the selector becomes horizontally scrollable, THEN the chosen tool still shows the same content and behavior as before.
+- `Offline operation`: GIVEN the device has no network connectivity, WHEN the user scrolls the tool list and changes tools, THEN the app behaves normally because the selector refactor depends only on local UI state.
 
 ## Exit criteria
-- Remove the visible top-level `Solver` title header from the current app shell.
-- Keep the implemented tools reachable and visually coherent after the header is removed.
-- Preserve the existing shared-session behavior, including persisted input and selected tool state.
-- Update or add automated UI coverage so launch and implemented tool flows confirm the header is no longer visible.
-- Keep `DESIGN.md`, `TESTING.md`, `tests/SCENARIOS.md`, and `tests/TESTS.md` aligned with the new top-level layout if the implementation changes the documented shell structure.
+- Replace the current overflowing tab presentation with a horizontally scrollable tool list that exposes all tools directly.
+- Preserve the shared selected-tool state so switching tools still updates the active content correctly.
+- Ensure implemented tools remain reachable without a `More` or `...` overflow interaction.
+- Add or update automated UI coverage so tool selection works through the new horizontally scrollable list.
+- Keep `DESIGN.md`, `TESTING.md`, `tests/SCENARIOS.md`, and `tests/TESTS.md` aligned with the new app-shell navigation behavior.
 
 ## Promotion rule
-- Promote this plan when the app launches and navigates between implemented tools without showing the title header, the existing behaviors remain intact, the change is tested and documented, then move that roadmap item to `Completed`, advance the current `Next` item into `Now`, and replace `PLAN.md` with a new plan for the new `Now` item.
+- Promote this plan when all tools are reachable from a horizontally scrollable selector without overflow navigation, the existing tool behavior remains intact, the change is tested and documented, then move that roadmap item to `Completed`, advance the current `Next` item into `Now`, and replace `PLAN.md` with a new plan for the new `Now` item.
