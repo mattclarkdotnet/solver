@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current bordered-main-input slice described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current bundled-test-wordlist consolidation slice described in `PLAN.md`.
 
 ## Test layers
 
@@ -10,13 +10,15 @@ This document explains how the automated test suite should support the strategy 
 - Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, thesaurus lookup, no-match cases, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
 - Persistence tests cover saving and restoring the current pattern, Scrabble-specific board fields, and selected tool using on-device storage only.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially the visible bordered main input field, preserved live tool behavior, distinct Scrabble helper-field styling, and offline operation.
+- Resource-contract tests cover loading the bundled test files from their reorganized location and verifying the implemented tools continue to agree on the same seed vocabulary where that contract matters.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially preserved live tool behavior after the bundled test-data move, coherent results under the shared vocabulary, and offline operation.
 
 ## Current coverage target
 
 - Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, and thesaurus lookup because they define the core behavior of the currently implemented tools.
-- Keep the existing behavioral coverage for implemented tools so the input styling change does not weaken end-to-end confidence.
-- Add explicit regression coverage for the bordered main input only if the visual treatment requires stable automation hooks beyond the existing smoke flow.
+- Add or update resource-loading coverage so the move into `Resources/wordlists/test/` does not silently break bundled-data access.
+- Keep the existing behavioral coverage for implemented tools so the shared-vocabulary change does not weaken end-to-end confidence.
+- Prefer asserting behavior through stable local fixtures and bundled seed data rather than inspecting packaging details directly from UI tests.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
 
@@ -37,7 +39,7 @@ This document explains how the automated test suite should support the strategy 
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, switching between implemented tools, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback while the bordered main input remains usable.
+  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, switching between implemented tools, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback after the bundled test-data move.
 
 ## Notable edge cases
 
@@ -51,8 +53,8 @@ This document explains how the automated test suite should support the strategy 
 - Unsupported non-rack characters sent to the Scrabble tool.
 - Overlong start or end letters sent to the Scrabble tool.
 - `Other letters` consuming an edge position only when that edge is otherwise unconstrained.
-- The bordered main input losing focus styling or editing behavior when switching tools.
-- The bordered main input becoming visually confused with the lighter Scrabble helper fields.
+- One bundled test list drifting away from the shared vocabulary used by the other implemented tool datasets.
+- Resource loading depending on a bundle path that changes when Xcode reorganizes packaged synchronized-folder contents.
 - Invalid record formatting in the bundled definitions dataset.
 - Wildcard-heavy input sent to the definitions tool.
 - Invalid record formatting in the bundled thesaurus dataset.

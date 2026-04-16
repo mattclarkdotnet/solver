@@ -8,6 +8,8 @@
 - Focus on common paths first
 - Treat offline-only operation as a core product requirement and verify implemented features still work without network connectivity.
 - Treat bundled word-list and lookup-list record formats as part of the product contract, and add or update tests when those formats change.
+- Treat the shared bundled test vocabulary as part of the product contract for the current seed data, and add or update tests when one implemented tool's test list diverges from the others.
+- Treat the `Resources/wordlists/test/` layout as part of the current packaging contract, while still verifying loaders cope with the app bundle structure Xcode actually emits.
 - Add explicit tests for edge cases that are universal across all kinds of apps:
   - Repeated events
   - Unparseable inputs

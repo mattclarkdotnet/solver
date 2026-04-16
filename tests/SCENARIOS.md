@@ -2,34 +2,34 @@
 
 ## Current roadmap item
 
-These scenarios describe the current bordered-main-input slice from `PLAN.md` and the `Now` item in `ROADMAP.md`.
+These scenarios describe the current bundled-test-wordlist consolidation slice from `PLAN.md` and the `Now` item in `ROADMAP.md`.
 
-## Shared input styling
+## Shared bundled data
 
-### Scenario: Show the main field as a primary control
-GIVEN the user opens any implemented tool
-WHEN the shared main input field appears
-THEN it has a visible border treatment that separates it from the page background
-AND the field still reads as the primary place to type
+### Scenario: Use the same test vocabulary across implemented tools
+GIVEN Solver ships bundled test data for crossword, Scrabble, definitions, and thesaurus
+WHEN the implemented tools load their local resources
+THEN those resources are all based on the same set of test words
+AND any format-specific metadata still maps onto that same shared vocabulary
+
+### Scenario: Load test resources from the reorganized folder structure
+GIVEN the bundled test data lives under `Resources/wordlists/test/`
+WHEN the user opens an implemented tool and triggers search or lookup
+THEN the tool loads its bundled local data successfully
+AND the resource reorganization is invisible to the user-facing workflow
 
 ## Existing behavior
 
-### Scenario: Keep live tools working after the field border change
-GIVEN the user interacts with an implemented solver tool
-WHEN the shared main input field has the new border treatment
-THEN the existing live search or lookup flow still works as before
-AND changing the field styling does not break the shared session state
-
-### Scenario: Keep helper fields visually distinct
-GIVEN the user opens the Scrabble tool
-WHEN the board-letter helper fields appear below the main field
-THEN those helper fields keep their existing lighter styling
-AND only the shared main input field gets the stronger primary border treatment
+### Scenario: Keep implemented flows coherent after vocabulary alignment
+GIVEN the shared bundled vocabulary adds or removes words compared with older seed files
+WHEN the user runs crossword, anagram, Scrabble, definitions, or thesaurus flows
+THEN the visible results reflect the new shared test data coherently
+AND empty, invalid, and no-match states still behave as expected
 
 ## Offline-only behavior
 
 ### Scenario: Use Solver with no network connectivity
 GIVEN the device has no network connectivity
-WHEN the user types into the shared main input field and uses an implemented tool
+WHEN the user types into the app and uses an implemented tool
 THEN the feature works normally using bundled or on-device data
 AND the app does not block on connectivity checks or online fallbacks

@@ -199,10 +199,15 @@ struct ScrabbleSearchService: Sendable {
 
     init(
         bundle: Bundle = .main,
-        resourceName: String = "scrabble_words"
+        resourceName: String = "scrabble_words",
+        resourceSubdirectory: String? = "wordlists/test"
     ) {
         self.entryLoader = {
-            try Self.loadEntries(bundle: bundle, resourceName: resourceName)
+            try Self.loadEntries(
+                bundle: bundle,
+                resourceName: resourceName,
+                resourceSubdirectory: resourceSubdirectory
+            )
         }
     }
 
@@ -331,9 +336,14 @@ struct ScrabbleSearchService: Sendable {
 
     private static func loadEntries(
         bundle: Bundle,
-        resourceName: String
+        resourceName: String,
+        resourceSubdirectory: String?
     ) throws -> [ScrabbleEntry] {
-        guard let url = bundle.url(forResource: resourceName, withExtension: "txt") else {
+        guard let url = bundle.url(
+            forResource: resourceName,
+            withExtension: "txt",
+            subdirectory: resourceSubdirectory
+        ) ?? bundle.url(forResource: resourceName, withExtension: "txt") else {
             throw ScrabbleSearchError.missingWordList
         }
 

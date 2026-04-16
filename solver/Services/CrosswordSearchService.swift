@@ -24,10 +24,15 @@ struct CrosswordSearchService: Sendable {
 
     init(
         bundle: Bundle = .main,
-        resourceName: String = "crossword_words"
+        resourceName: String = "crossword_words",
+        resourceSubdirectory: String? = "wordlists/test"
     ) {
         self.wordListLoader = {
-            try Self.loadWordList(bundle: bundle, resourceName: resourceName)
+            try Self.loadWordList(
+                bundle: bundle,
+                resourceName: resourceName,
+                resourceSubdirectory: resourceSubdirectory
+            )
         }
     }
 
@@ -74,9 +79,14 @@ struct CrosswordSearchService: Sendable {
 
     private static func loadWordList(
         bundle: Bundle,
-        resourceName: String
+        resourceName: String,
+        resourceSubdirectory: String?
     ) throws -> CrosswordWordList {
-        guard let url = bundle.url(forResource: resourceName, withExtension: "txt") else {
+        guard let url = bundle.url(
+            forResource: resourceName,
+            withExtension: "txt",
+            subdirectory: resourceSubdirectory
+        ) ?? bundle.url(forResource: resourceName, withExtension: "txt") else {
             throw CrosswordSearchError.missingWordList
         }
 
@@ -92,7 +102,7 @@ struct CrosswordSearchService: Sendable {
             throw CrosswordSearchError.emptyWordList
         }
 
-        return CrosswordWordList(name: "Bundled starter list", entries: entries)
+        return CrosswordWordList(name: "Bundled test list", entries: entries)
     }
 }
 

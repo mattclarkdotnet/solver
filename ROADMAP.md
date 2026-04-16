@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Now
-- Put a border around the main input field
+- ensure the test word lists all contain the same words, and move them to a folder inside Resources named "wordlists/test/", in preparation for adding more wordlists
 
 ## Next
 - Add user preferences.
@@ -24,6 +24,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Put a border around the main input field
 - Make the tool list horizontally scrollable instead of having the "..." for more tools
 - Remove the title header
 - Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab

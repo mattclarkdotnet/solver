@@ -1,0 +1,49 @@
+anagram|AN-uh-gram|A word formed by rearranging the letters of another word.
+anagrams|AN-uh-gramz|Plural form of anagram.
+art|AHRT|Creative expression produced by skill or imagination.
+arts|AHRTS|Plural form of art.
+aster|AS-tuhr|A daisy-like flowering plant.
+cat|KAT|A small domesticated feline animal.
+cater|KAY-tuhr|To provide food or service for an event or need.
+checker|CHEK-uhr|A person or thing that examines or verifies something.
+clue|KLOO|A piece of information that helps solve something.
+clues|KLOOZ|Plural form of clue.
+coat|KOHT|An outer garment worn over other clothes.
+cot|KOT|A small portable bed.
+crate|KRAYT|A large shipping box or slatted container.
+crossword|KRAWS-wurd|A word puzzle in which answers are filled into a grid from clues.
+cut|KUT|To divide or trim with a sharp edge.
+cute|KYOOT|Attractive in a charming or pretty way.
+dare|DAIR|To challenge or have the courage to do something.
+date|DAYT|A particular day of the month or year.
+dear|DEER|Beloved, valued, or costly.
+finder|FYN-duhr|A person or thing that discovers something.
+grid|GRID|A network of lines forming squares or rectangles.
+grids|GRIDZ|Plural form of grid.
+letter|LET-uhr|A written or printed character in an alphabet.
+letters|LET-uhrz|Plural form of letter.
+part|PAHRT|A piece or portion of a whole.
+pattern|PAT-uhrn|A repeated design, model, or arrangement.
+phrase|FRAYZ|A small group of words used together.
+phrases|FRAY-ziz|Plural form of phrase.
+rapt|RAPT|Fully absorbed or fascinated.
+rat|RAT|A small long-tailed rodent.
+rates|RAYTS|Plural form of rate or third-person form of rate.
+react|ree-AKT|To respond to something that has happened.
+read|REED|To look at and understand written words.
+scrabble|SKRAB-uhl|To search frantically or to write hastily.
+search|SURCH|To look carefully for something.
+searches|SUR-chiz|Plural form of search or third-person form of search.
+solver|SOL-vuhr|A person or thing that finds an answer to a problem or puzzle.
+star|STAHR|A luminous point seen in the night sky.
+stare|STAIR|To look fixedly with wide-open eyes.
+stared|STAIRD|Past tense of stare.
+tar|TAHR|A dark sticky substance used for paving or sealing.
+tars|TAHRZ|Plural form of tar.
+tears|TEERZ|Drops from the eyes or plural form of tear.
+thesaurus|thih-SAWR-uhs|A reference work that groups words by similarity of meaning.
+trace|TRAYS|A small sign, mark, or amount showing something existed.
+trade|TRAYD|The activity of buying, selling, or exchanging goods.
+trades|TRAYDZ|Plural form of trade or third-person form of trade.
+word|WURD|A unit of language that carries meaning.
+words|WURDZ|Plural form of word.

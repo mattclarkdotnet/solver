@@ -1,5 +1,0 @@
-solver|SOL-vuhr|A person or thing that finds an answer to a problem or puzzle.
-scrabble|SKRAB-uhl|To search frantically or to write hastily.
-crossword|KRAWS-wurd|A word puzzle in which answers are filled into a grid from clues.
-anagram|AN-uh-gram|A word or phrase made by rearranging the letters of another word or phrase.
-word game|WURD gaym|A game or puzzle built around spelling, vocabulary, or letter combinations.

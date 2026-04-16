@@ -1,0 +1,49 @@
+anagram|rearrangement, transposition, letter shuffle
+anagrams|rearrangements, transpositions, letter shuffles
+art|craft, creativity, expression
+arts|crafts, humanities, creativity
+aster|flower, bloom, daisy
+cat|feline, kitty, tom
+cater|provide, supply, serve
+checker|inspector, verifier, reviewer
+clue|hint, cue, lead
+clues|hints, cues, leads
+coat|jacket, layer, covering
+cot|bed, bunk, camp bed
+crate|box, case, container
+crossword|puzzle, word puzzle, grid challenge
+cut|trim, slice, clip
+cute|adorable, charming, sweet
+dare|challenge, venture, risk
+date|day, appointment, occasion
+dear|beloved, cherished, costly
+finder|discoverer, locator, detector
+grid|lattice, matrix, framework
+grids|lattices, matrices, frameworks
+letter|character, symbol, glyph
+letters|characters, symbols, glyphs
+part|piece, portion, section
+pattern|design, arrangement, motif
+phrase|expression, wording, saying
+phrases|expressions, wordings, sayings
+rapt|absorbed, entranced, captivated
+rat|rodent, informer, deserter
+rates|prices, levels, charges
+react|respond, answer, reply
+read|scan, study, peruse
+scrabble|rummage, scramble, scrawl
+search|seek, explore, hunt
+searches|seeks, explores, hunts
+solver|answerer, cracker, decipherer
+star|celebrity, standout, luminary
+stare|gaze, gape, glare
+stared|gazed, gaped, glared
+tar|pitch, asphalt, resin
+tars|pitches, asphalts, resins
+tears|crying, sobs, droplets
+thesaurus|wordbook, synonym finder, lexicon
+trace|mark, sign, hint
+trade|commerce, exchange, business
+trades|businesses, exchanges, crafts
+word|term, expression, entry
+words|terms, expressions, entries
