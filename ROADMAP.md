@@ -4,9 +4,12 @@
 - Add thesaurus lookup using test thesaurus data.
 
 ## Next
-- Add Scrabble word checking using test scrabble word list data.
+- Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab
 
 ## Later
+- Remove the title header
+- Make the tool list horizontally scrollable instead of having the "..." for more tools
+- Put a border around the main input field
 - Add user preferences.
 - Add selectable default crossword word lists.
 - Add selectable default Scrabble word lists.

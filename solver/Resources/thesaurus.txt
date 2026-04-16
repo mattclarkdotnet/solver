@@ -1,0 +1,5 @@
+solver|answerer, cracker, decipherer
+scrabble|rummage, scramble, scrawl
+crossword|puzzle, word puzzle, grid challenge
+anagram|rearrangement, transposition, letter shuffle
+word game|letter game, spelling game, vocabulary puzzle

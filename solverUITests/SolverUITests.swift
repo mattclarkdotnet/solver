@@ -178,4 +178,41 @@ final class SolverUITests: XCTestCase {
             app.staticTexts["Definitions lookup supports literal words or phrases only, without wildcards or rack symbols."].waitForExistence(timeout: 5)
         )
     }
+
+    @MainActor
+    func testThesaurusTabShowsBundledSynonyms() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        openOverflowTab(named: "Thesaurus", in: app)
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("solver")
+
+        XCTAssertTrue(app.staticTexts["solver"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["answerer"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["decipherer"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testThesaurusTabRejectsWildcardLookupInputInline() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("UITEST_RESET_STATE")
+        app.launch()
+
+        openOverflowTab(named: "Thesaurus", in: app)
+
+        let patternField = app.textFields["pattern-field"]
+        XCTAssertTrue(patternField.waitForExistence(timeout: 5))
+        patternField.tap()
+        patternField.typeText("solv?r")
+
+        XCTAssertTrue(app.staticTexts["Fix the lookup first"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.staticTexts["Thesaurus lookup supports literal words or phrases only, without wildcards or rack symbols."].waitForExistence(timeout: 5)
+        )
+    }
 }

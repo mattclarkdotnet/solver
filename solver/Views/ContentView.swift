@@ -6,6 +6,7 @@ struct ContentView: View {
     private let scrabbleService = ScrabbleSearchService()
     private let anagramService = AnagramSearchService()
     private let definitionsService = DefinitionsLookupService()
+    private let thesaurusService = ThesaurusLookupService()
 
     var body: some View {
         NavigationStack {
@@ -14,7 +15,8 @@ struct ContentView: View {
                 crosswordService: crosswordService,
                 scrabbleService: scrabbleService,
                 anagramService: anagramService,
-                definitionsService: definitionsService
+                definitionsService: definitionsService,
+                thesaurusService: thesaurusService
             )
                 .navigationTitle("Solver")
         }
@@ -27,6 +29,7 @@ private struct SolverHomeView: View {
     let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
     let definitionsService: DefinitionsLookupService
+    let thesaurusService: ThesaurusLookupService
 
     var body: some View {
         ToolTabs(
@@ -34,7 +37,8 @@ private struct SolverHomeView: View {
             crosswordService: crosswordService,
             scrabbleService: scrabbleService,
             anagramService: anagramService,
-            definitionsService: definitionsService
+            definitionsService: definitionsService,
+            thesaurusService: thesaurusService
         )
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -83,6 +87,7 @@ private struct ToolTabs: View {
     let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
     let definitionsService: DefinitionsLookupService
+    let thesaurusService: ThesaurusLookupService
 
     var body: some View {
         TabView(selection: $session.selectedTool) {
@@ -111,7 +116,7 @@ private struct ToolTabs: View {
             }
 
             Tab("Thesaurus", systemImage: SolverTool.thesaurus.systemImage, value: .thesaurus) {
-                PlaceholderToolView(tool: .thesaurus)
+                ThesaurusToolView(session: session, lookupService: thesaurusService)
             }
         }
         .background(Color(.systemGroupedBackground))
@@ -621,6 +626,131 @@ private struct DefinitionsToolView: View {
     }
 }
 
+private struct ThesaurusToolView: View {
+    @ObservedObject var session: SolverSession
+    let lookupService: ThesaurusLookupService
+
+    @State private var presentationState: ThesaurusPresentationState = .idle
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                PatternEntryField(
+                    session: session,
+                    placeholder: "Example: solver or word game",
+                    instructions: "Enter a literal word or phrase to look it up in the bundled offline test thesaurus list."
+                )
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 32)
+        }
+        .scrollIndicators(.hidden)
+        .task(id: queryFingerprint) {
+            await refreshThesaurus()
+        }
+    }
+
+    private var queryState: ThesaurusLookupQueryState {
+        ThesaurusLookupQueryState(rawInput: session.rawPattern)
+    }
+
+    private var queryFingerprint: String {
+        switch queryState {
+        case .empty:
+            "empty"
+        case .invalid(let message):
+            "invalid:\(message)"
+        case .valid(let query):
+            "valid:\(query.lookupKey)"
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch presentationState {
+        case .idle:
+            SearchMessageCard(
+                title: "Start with a word",
+                message: "Enter a literal word or phrase above and the thesaurus tab will search the bundled offline test thesaurus list.",
+                symbol: "text.book.closed",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("thesaurus-status-card")
+        case .loading:
+            SearchMessageCard(
+                title: "Looking up synonyms",
+                message: "The thesaurus tool is checking the bundled test thesaurus list on this device.",
+                symbol: "hourglass",
+                tint: .blue
+            )
+            .accessibilityIdentifier("thesaurus-status-card")
+        case .empty(let term):
+            SearchMessageCard(
+                title: "No synonyms for \(term)",
+                message: "Try another literal word or phrase from the test thesaurus list.",
+                symbol: "text.magnifyingglass",
+                tint: .secondary
+            )
+            .accessibilityIdentifier("thesaurus-status-card")
+        case .invalid(let message):
+            SearchMessageCard(
+                title: "Fix the lookup first",
+                message: message,
+                symbol: "exclamationmark.triangle",
+                tint: .orange
+            )
+            .accessibilityIdentifier("thesaurus-status-card")
+        case .failed(let message):
+            SearchMessageCard(
+                title: "Thesaurus lookup unavailable",
+                message: message,
+                symbol: "xmark.octagon",
+                tint: .red
+            )
+            .accessibilityIdentifier("thesaurus-status-card")
+        case .result(let entry):
+            ThesaurusResultCard(entry: entry)
+                .accessibilityIdentifier("thesaurus-result-card")
+        }
+    }
+
+    @MainActor
+    private func refreshThesaurus() async {
+        switch queryState {
+        case .empty:
+            presentationState = .idle
+            return
+        case .invalid(let message):
+            presentationState = .invalid(message)
+            return
+        case .valid:
+            break
+        }
+
+        presentationState = .loading
+
+        guard case .valid(let query) = queryState else {
+            return
+        }
+
+        do {
+            let resolvedEntry = try await lookupService.lookup(query)
+
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            presentationState = resolvedEntry.map(ThesaurusPresentationState.result)
+                ?? .empty(query.lookupKey)
+        } catch is CancellationError {
+            return
+        } catch {
+            presentationState = .failed(error.localizedDescription)
+        }
+    }
+}
+
 private struct WordResultsCard: View {
     let entries: [String]
 
@@ -667,6 +797,45 @@ private struct DefinitionResultCard: View {
             Text(entry.definition)
                 .font(.body)
                 .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.3))
+        )
+    }
+}
+
+private struct ThesaurusResultCard: View {
+    let entry: ThesaurusEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(entry.word)
+                .font(.title3.weight(.semibold))
+
+            Text("Synonyms")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            LazyVStack(alignment: .leading, spacing: 10) {
+                ForEach(entry.synonyms, id: \.self) { synonym in
+                    Text(synonym)
+                        .font(.body)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -766,6 +935,15 @@ private enum DefinitionsPresentationState {
     case invalid(String)
     case failed(String)
     case result(DefinitionEntry)
+}
+
+private enum ThesaurusPresentationState {
+    case idle
+    case loading
+    case empty(String)
+    case invalid(String)
+    case failed(String)
+    case result(ThesaurusEntry)
 }
 
 struct ContentView_Previews: PreviewProvider {
