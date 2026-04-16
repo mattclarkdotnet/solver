@@ -11,6 +11,8 @@ final class SolverUITests: XCTestCase {
         app.launchArguments.append("UITEST_RESET_STATE")
         app.launch()
 
+        assertNoSolverHeader(in: app)
+
         let patternField = app.textFields["pattern-field"]
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Start with a pattern"].waitForExistence(timeout: 5))
@@ -23,6 +25,7 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Patterns cannot end with a word break."].waitForExistence(timeout: 5))
 
         app.tabBars.buttons["Scrabble"].tap()
+        assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "ice-", to: "stare")
@@ -53,6 +56,7 @@ final class SolverUITests: XCTestCase {
         )
 
         app.tabBars.buttons["Anagram"].tap()
+        assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "sta-re", to: "stare")
@@ -66,6 +70,7 @@ final class SolverUITests: XCTestCase {
         )
 
         openOverflowTab(named: "Define", in: app)
+        assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "st?re", to: "solver")
@@ -80,6 +85,7 @@ final class SolverUITests: XCTestCase {
         )
 
         openOverflowTab(named: "Thesaurus", in: app)
+        assertNoSolverHeader(in: app)
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "solv?r", to: "solver")
@@ -99,6 +105,12 @@ final class SolverUITests: XCTestCase {
         app.tabBars.buttons["More"].tap()
         XCTAssertTrue(app.tables.staticTexts[name].waitForExistence(timeout: 5))
         app.tables.staticTexts[name].tap()
+    }
+
+    @MainActor
+    private func assertNoSolverHeader(in app: XCUIApplication) {
+        XCTAssertFalse(app.navigationBars["Solver"].exists)
+        XCTAssertFalse(app.staticTexts["Solver"].exists)
     }
 
     @MainActor

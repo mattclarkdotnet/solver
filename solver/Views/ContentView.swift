@@ -9,17 +9,14 @@ struct ContentView: View {
     private let thesaurusService = ThesaurusLookupService()
 
     var body: some View {
-        NavigationStack {
-            SolverHomeView(
-                session: session,
-                crosswordService: crosswordService,
-                scrabbleService: scrabbleService,
-                anagramService: anagramService,
-                definitionsService: definitionsService,
-                thesaurusService: thesaurusService
-            )
-                .navigationTitle("Solver")
-        }
+        SolverHomeView(
+            session: session,
+            crosswordService: crosswordService,
+            scrabbleService: scrabbleService,
+            anagramService: anagramService,
+            definitionsService: definitionsService,
+            thesaurusService: thesaurusService
+        )
     }
 }
 

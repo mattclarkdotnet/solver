@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Now
-- Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab
+- Remove the title header
 
 ## Next
-- Remove the title header
+- Make the tool list horizontally scrollable instead of having the "..." for more tools
 
 ## Later
 - Make the tool list horizontally scrollable instead of having the "..." for more tools
@@ -26,6 +26,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab
 - Add thesaurus lookup using test thesaurus data.
 - Add definitions lookup using test dictionary data.
 - Add Scrabble search using test scrabble word list data.

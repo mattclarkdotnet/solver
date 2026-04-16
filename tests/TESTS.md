@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current Scrabble word-finder refinement described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current title-header removal slice described in `PLAN.md`.
 
 ## Test layers
 
@@ -10,12 +10,12 @@ This document explains how the automated test suite should support the strategy 
 - Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, thesaurus lookup, no-match cases, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
 - Persistence tests cover saving and restoring the current pattern, Scrabble-specific board fields, and selected tool using on-device storage only.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially the Scrabble tab's combined rack-plus-board-letter flow, inline invalid input, tab coherence, and offline operation.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially the missing title header at launch, cross-tool layout consistency, preserved live tool behavior, and offline operation.
 
 ## Current coverage target
 
 - Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, and thesaurus lookup because they define the core behavior of the currently implemented tools.
-- Add behavioral coverage for the Scrabble tab's live-search flow before broadening into every future tool.
+- Add behavioral coverage for the app-shell layout change without weakening the existing end-to-end coverage for implemented tools.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
 
@@ -36,7 +36,7 @@ This document explains how the automated test suite should support the strategy 
 - `SolverSessionTests`
   Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
+  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch without the `Solver` title header, cross-tool confirmation that the header stays absent, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback.
 
 ## Notable edge cases
 
@@ -50,6 +50,7 @@ This document explains how the automated test suite should support the strategy 
 - Unsupported non-rack characters sent to the Scrabble tool.
 - Overlong start or end letters sent to the Scrabble tool.
 - `Other letters` consuming an edge position only when that edge is otherwise unconstrained.
+- The app shell showing a stale top-level title header after launch or after switching tools.
 - Invalid record formatting in the bundled definitions dataset.
 - Wildcard-heavy input sent to the definitions tool.
 - Invalid record formatting in the bundled thesaurus dataset.
