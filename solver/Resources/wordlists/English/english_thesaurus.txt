@@ -1,0 +1,29 @@
+alert|watchful, attentive, ready
+alter|change, modify, adjust
+angle|corner, bend, slant
+angel|guardian, spirit, messenger
+apple|pome, fruit, orchard fruit
+beach|shore, coast, seaside
+bread|loaf, food, baked good
+cater|provide, supply, serve
+crate|box, case, container
+earth|globe, world, land
+glean|gather, collect, piece together
+grape|berry, vine fruit, cluster fruit
+hater|critic, enemy, detractor
+heart|core, spirit, center
+later|afterward, soon, subsequently
+notes|records, remarks, observations
+panel|section, board, committee
+petal|blade, bloom part, flower leaf
+plane|aircraft, level, flat surface
+plate|dish, platter, tray
+react|respond, answer, reply
+river|stream, waterway, channel
+smile|grin, beam, smirk
+stone|rock, pebble, boulder
+table|desk, chart, board
+tones|sounds, pitches, colors
+trace|sign, hint, mark
+water|liquid, rain, aqua
+world|earth, globe, planet

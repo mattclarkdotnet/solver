@@ -2,22 +2,22 @@
 
 ## Purpose
 
-This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current bundled-test-wordlist consolidation slice described in `PLAN.md`.
+This document explains how the automated test suite should support the strategy in `TESTING.md` for the current roadmap item. It is intentionally scoped to the current bundled-word-list-group and in-app preference slice described in `PLAN.md`.
 
 ## Test layers
 
 - Parser unit tests cover normalization of the word-pattern syntax from `README.md`, including letters, single-character wildcards, multi-character wildcards, spaces, and hyphens.
 - Search engine unit tests cover matching behavior against bundled local datasets, including crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, thesaurus lookup, no-match cases, and repeated searches.
 - State-model tests cover the shared query state, persisted launch behavior, and invalidation rules when the pattern changes.
-- Persistence tests cover saving and restoring the current pattern, Scrabble-specific board fields, and selected tool using on-device storage only.
-- Resource-contract tests cover loading the bundled test files from their reorganized location and verifying the implemented tools continue to agree on the same seed vocabulary where that contract matters.
-- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially preserved live tool behavior after the bundled test-data move, coherent results under the shared vocabulary, and offline operation.
+- Persistence tests cover saving and restoring the current pattern, Scrabble-specific board fields, selected tool, and selected bundled word-list group using on-device storage only.
+- Resource-contract tests cover loading bundled files from the selected group and verifying the implemented tools continue to resolve the chosen group coherently.
+- UI or behavioral tests cover the user-visible flows in `SCENARIOS.md`, especially switching groups from the compact in-app preferences control without leaving the active tool, coherent results under the selected group, and offline operation.
 
 ## Current coverage target
 
 - Start with fast unit tests for parsing, crossword matching, anagram matching, Scrabble rack-plus-board matching, definitions lookup, and thesaurus lookup because they define the core behavior of the currently implemented tools.
-- Add or update resource-loading coverage so the move into `Resources/wordlists/test/` does not silently break bundled-data access.
-- Keep the existing behavioral coverage for implemented tools so the shared-vocabulary change does not weaken end-to-end confidence.
+- Add or update resource-loading coverage so group selection between `test` and `English` does not silently break bundled-data access.
+- Keep the existing behavioral coverage for implemented tools so the new in-app preference does not weaken end-to-end confidence.
 - Prefer asserting behavior through stable local fixtures and bundled seed data rather than inspecting packaging details directly from UI tests.
 - Prefer fixtures built from small local word lists so tests stay deterministic and easy to understand.
 - Keep network usage out of the test harness; offline-only behavior should be the default test environment, not a special-case mode.
@@ -37,9 +37,9 @@ This document explains how the automated test suite should support the strategy 
 - `ThesaurusLookupTests`
   Covers exact lookup, phrase lookup, unsupported input, and parsing of the bundled thesaurus-record format.
 - `SolverSessionTests`
-  Covers shared state updates, selected-tab behavior, persistence, and reset behavior for deterministic UI tests.
+  Covers shared state updates, selected-tab behavior, bundled-group persistence, and reset behavior for deterministic UI tests.
 - `SolverAppUITests`
-  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, switching between implemented tools, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback after the bundled test-data move.
+  Covers top-level user flows from `SCENARIOS.md` in one shared app session, including launch, switching bundled groups without leaving the current tool, live crossword matches, live anagram matches, live Scrabble rack matches, live Scrabble board-letter matches, live definitions lookup, live thesaurus lookup, and inline invalid-input feedback after the bundled-group preference lands.
 
 ## Notable edge cases
 
@@ -53,8 +53,10 @@ This document explains how the automated test suite should support the strategy 
 - Unsupported non-rack characters sent to the Scrabble tool.
 - Overlong start or end letters sent to the Scrabble tool.
 - `Other letters` consuming an edge position only when that edge is otherwise unconstrained.
-- One bundled test list drifting away from the shared vocabulary used by the other implemented tool datasets.
+- The active tool changing unexpectedly when the user opens the in-app preferences control.
+- The selected bundled group failing to persist across relaunch.
 - Resource loading depending on a bundle path that changes when Xcode reorganizes packaged synchronized-folder contents.
+- The `English` grouped resources colliding with `test` resources when the bundle is flattened.
 - Invalid record formatting in the bundled definitions dataset.
 - Wildcard-heavy input sent to the definitions tool.
 - Invalid record formatting in the bundled thesaurus dataset.

@@ -43,10 +43,9 @@ Comment the codebase thoroughly to show the correspondence to DESIGN.md.  When t
 
 - `ROADMAP.md` must always use exactly four sections: `Now`, `Next`, `Later`, and `Completed`.
 - `Now` must contain exactly one item.
-- `Next` must contain exactly one item.
 - `Later` must contain all remaining items, ordered by priority (highest first).
 - `Completed` must list finished items in chronological order (most recent first).
-- Do not leave completed items in `Now`, `Next`, or `Later`; move them into `Completed`.
+- Do not leave completed items in `Now`, or `Later`; move them into `Completed`.
 
 Comment the codebase thoroughly to show the correspondence to DESIGN.md.  When the code or the design changes, update the comments and DESIGN.md to reflect the current state.
 

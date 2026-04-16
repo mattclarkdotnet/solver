@@ -10,6 +10,7 @@
 - Treat bundled word-list and lookup-list record formats as part of the product contract, and add or update tests when those formats change.
 - Treat the shared bundled test vocabulary as part of the product contract for the current seed data, and add or update tests when one implemented tool's test list diverges from the others.
 - Treat the `Resources/wordlists/test/` layout as part of the current packaging contract, while still verifying loaders cope with the app bundle structure Xcode actually emits.
+- Treat bundled word-list-group selection as a product contract: tests should cover the persisted in-app preference, switching groups without leaving the current tool, and continued offline loading from the selected group.
 - Add explicit tests for edge cases that are universal across all kinds of apps:
   - Repeated events
   - Unparseable inputs

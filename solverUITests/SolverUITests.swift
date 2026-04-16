@@ -17,7 +17,20 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Start with a pattern"].waitForExistence(timeout: 5))
 
-        replaceText(in: patternField, from: "", to: "c?t")
+        replaceText(in: patternField, from: "", to: "apple")
+        XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "Test")
+
+        selectWordList(named: "English", in: app)
+        XCTAssertTrue(app.staticTexts["Apple"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["crossword-results-card"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "English")
+
+        selectWordList(named: "Test", in: app)
+        XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "Test")
+
+        replaceText(in: patternField, from: "apple", to: "c?t")
         XCTAssertTrue(app.staticTexts["Cat"].waitForExistence(timeout: 5))
 
         replaceText(in: patternField, from: "c?t", to: "ice-")
@@ -117,6 +130,17 @@ final class SolverUITests: XCTestCase {
         }
 
         XCTFail("Could not select tool \(rawToolName)")
+    }
+
+    @MainActor
+    private func selectWordList(named name: String, in app: XCUIApplication) {
+        let preferencesButton = app.buttons["word-list-preferences-button"]
+        XCTAssertTrue(preferencesButton.waitForExistence(timeout: 5))
+        preferencesButton.tap()
+
+        let option = app.buttons[name]
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
     }
 
     @MainActor

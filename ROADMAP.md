@@ -1,19 +1,11 @@
 # Roadmap
 
 ## Now
-- ensure the test word lists all contain the same words, and move them to a folder inside Resources named "wordlists/test/", in preparation for adding more wordlists
-
-## Next
-- Add user preferences.
+- Add a real English word list group, and a user preference to choose which group ("test" or "English") to use
 
 ## Later
-- Add user preferences.
-- Add selectable default crossword word lists.
-- Add selectable default Scrabble word lists.
+- Add selectable word lists.
 - Add word-list management.
-- Add real word lists for crosswords
-- Add real word lists for scrabble
-- Add a real thesaurus
 - Add automated behavioral scenario coverage.
 - Add parser property tests.
 - Add matcher property tests.
@@ -24,6 +16,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- ensure the test word lists all contain the same words, and move them to a folder inside Resources named "wordlists/test/", in preparation for adding more wordlists
 - Put a border around the main input field
 - Make the tool list horizontally scrollable instead of having the "..." for more tools
 - Remove the title header

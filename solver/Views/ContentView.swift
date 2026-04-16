@@ -2,40 +2,23 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var session = SolverSession()
-    private let crosswordService = CrosswordSearchService()
-    private let scrabbleService = ScrabbleSearchService()
-    private let anagramService = AnagramSearchService()
-    private let definitionsService = DefinitionsLookupService()
-    private let thesaurusService = ThesaurusLookupService()
 
     var body: some View {
-        SolverHomeView(
-            session: session,
-            crosswordService: crosswordService,
-            scrabbleService: scrabbleService,
-            anagramService: anagramService,
-            definitionsService: definitionsService,
-            thesaurusService: thesaurusService
-        )
+        SolverHomeView(session: session)
     }
 }
 
 private struct SolverHomeView: View {
     @ObservedObject var session: SolverSession
-    let crosswordService: CrosswordSearchService
-    let scrabbleService: ScrabbleSearchService
-    let anagramService: AnagramSearchService
-    let definitionsService: DefinitionsLookupService
-    let thesaurusService: ThesaurusLookupService
 
     var body: some View {
         ToolTabs(
             session: session,
-            crosswordService: crosswordService,
-            scrabbleService: scrabbleService,
-            anagramService: anagramService,
-            definitionsService: definitionsService,
-            thesaurusService: thesaurusService
+            crosswordService: CrosswordSearchService(wordListGroup: session.selectedWordListGroup),
+            scrabbleService: ScrabbleSearchService(wordListGroup: session.selectedWordListGroup),
+            anagramService: AnagramSearchService(wordListGroup: session.selectedWordListGroup),
+            definitionsService: DefinitionsLookupService(wordListGroup: session.selectedWordListGroup),
+            thesaurusService: ThesaurusLookupService(wordListGroup: session.selectedWordListGroup)
         )
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
@@ -95,8 +78,12 @@ private struct ToolTabs: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Keep the selector outside the tool scroll views so it stays reachable while tool content scrolls.
-            ToolSelector(selectedTool: $session.selectedTool)
+            // Keep the selector and preferences control outside the tool scroll views so they stay reachable while tool content scrolls.
+            HStack(alignment: .top, spacing: 12) {
+                ToolSelector(selectedTool: $session.selectedTool)
+                    .frame(maxWidth: .infinity)
+                WordListPreferencesMenu(session: session)
+            }
             selectedToolContent
             Spacer(minLength: 0)
         }
@@ -108,19 +95,39 @@ private struct ToolTabs: View {
     private var selectedToolContent: some View {
         switch session.selectedTool {
         case .crossword:
-            CrosswordToolView(session: session, searchService: crosswordService)
+            CrosswordToolView(
+                session: session,
+                wordListGroup: session.selectedWordListGroup,
+                searchService: crosswordService
+            )
         case .scrabble:
-            ScrabbleToolView(session: session, searchService: scrabbleService)
+            ScrabbleToolView(
+                session: session,
+                wordListGroup: session.selectedWordListGroup,
+                searchService: scrabbleService
+            )
         case .anagramSolver:
-            AnagramToolView(session: session, searchService: anagramService)
+            AnagramToolView(
+                session: session,
+                wordListGroup: session.selectedWordListGroup,
+                searchService: anagramService
+            )
         case .anagramGenerator:
             PlaceholderToolView(tool: .anagramGenerator)
         case .definitions:
-            DefinitionsToolView(session: session, lookupService: definitionsService)
+            DefinitionsToolView(
+                session: session,
+                wordListGroup: session.selectedWordListGroup,
+                lookupService: definitionsService
+            )
         case .scrabbleChecker:
             PlaceholderToolView(tool: .scrabbleChecker)
         case .thesaurus:
-            ThesaurusToolView(session: session, lookupService: thesaurusService)
+            ThesaurusToolView(
+                session: session,
+                wordListGroup: session.selectedWordListGroup,
+                lookupService: thesaurusService
+            )
         }
     }
 }
@@ -197,8 +204,52 @@ private struct ToolSelector: View {
     }
 }
 
+private struct WordListPreferencesMenu: View {
+    @ObservedObject var session: SolverSession
+
+    var body: some View {
+        Menu {
+            Section("Word list") {
+                ForEach(WordListGroup.allCases) { group in
+                    Button {
+                        session.selectedWordListGroup = group
+                    } label: {
+                        if session.selectedWordListGroup == group {
+                            Label(group.title, systemImage: "checkmark")
+                        } else {
+                            Text(group.title)
+                        }
+                    }
+                }
+            }
+
+            Section {
+                Text(session.selectedWordListGroup.sourceDescription)
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle()
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color(.separator).opacity(0.3))
+                )
+        }
+        .accessibilityIdentifier("word-list-preferences-button")
+        .accessibilityLabel("Word list preferences")
+        .accessibilityValue(session.selectedWordListGroup.title)
+        .accessibilityHint("Choose the active bundled word list group.")
+    }
+}
+
 private struct CrosswordToolView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let searchService: CrosswordSearchService
 
     @State private var presentationState: CrosswordPresentationState = .idle
@@ -230,11 +281,11 @@ private struct CrosswordToolView: View {
     private var queryFingerprint: String? {
         switch queryState {
         case .empty:
-            "empty"
+            "empty:\(wordListGroup.rawValue)"
         case .invalid(let message):
-            "invalid:\(message)"
+            "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(query.normalizedPattern)"
+            "valid:\(wordListGroup.rawValue):\(query.normalizedPattern)"
         }
     }
 
@@ -329,6 +380,7 @@ private struct CrosswordToolView: View {
 
 private struct AnagramToolView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let searchService: AnagramSearchService
 
     @State private var presentationState: AnagramPresentationState = .idle
@@ -360,11 +412,11 @@ private struct AnagramToolView: View {
     private var queryFingerprint: String {
         switch queryState {
         case .empty:
-            "empty"
+            "empty:\(wordListGroup.rawValue)"
         case .invalid(let message):
-            "invalid:\(message)"
+            "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(query.letters)"
+            "valid:\(wordListGroup.rawValue):\(query.letters)"
         }
     }
 
@@ -459,6 +511,7 @@ private struct AnagramToolView: View {
 
 private struct ScrabbleToolView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let searchService: ScrabbleSearchService
 
     @State private var presentationState: ScrabblePresentationState = .idle
@@ -496,11 +549,11 @@ private struct ScrabbleToolView: View {
     private var queryFingerprint: String {
         switch queryState {
         case .empty:
-            "empty"
+            "empty:\(wordListGroup.rawValue)"
         case .invalid(let message):
-            "invalid:\(message)"
+            "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(query.normalizedDescription)"
+            "valid:\(wordListGroup.rawValue):\(query.normalizedDescription)"
         }
     }
 
@@ -676,6 +729,7 @@ private struct ScrabbleBoardFields: View {
 
 private struct DefinitionsToolView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let lookupService: DefinitionsLookupService
 
     @State private var presentationState: DefinitionsPresentationState = .idle
@@ -707,11 +761,11 @@ private struct DefinitionsToolView: View {
     private var queryFingerprint: String {
         switch queryState {
         case .empty:
-            "empty"
+            "empty:\(wordListGroup.rawValue)"
         case .invalid(let message):
-            "invalid:\(message)"
+            "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(query.lookupKey)"
+            "valid:\(wordListGroup.rawValue):\(query.lookupKey)"
         }
     }
 
@@ -805,6 +859,7 @@ private struct DefinitionsToolView: View {
 
 private struct ThesaurusToolView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let lookupService: ThesaurusLookupService
 
     @State private var presentationState: ThesaurusPresentationState = .idle
@@ -836,11 +891,11 @@ private struct ThesaurusToolView: View {
     private var queryFingerprint: String {
         switch queryState {
         case .empty:
-            "empty"
+            "empty:\(wordListGroup.rawValue)"
         case .invalid(let message):
-            "invalid:\(message)"
+            "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(query.lookupKey)"
+            "valid:\(wordListGroup.rawValue):\(query.lookupKey)"
         }
     }
 

@@ -47,13 +47,13 @@ struct DefinitionsLookupService: Sendable {
     init(
         bundle: Bundle = .main,
         resourceName: String = "definitions",
-        resourceSubdirectory: String? = "wordlists/test"
+        wordListGroup: WordListGroup = .defaultGroup
     ) {
         self.entryLoader = {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
-                resourceSubdirectory: resourceSubdirectory
+                wordListGroup: wordListGroup
             )
         }
     }
@@ -84,13 +84,13 @@ struct DefinitionsLookupService: Sendable {
     private static func loadEntries(
         bundle: Bundle,
         resourceName: String,
-        resourceSubdirectory: String?
+        wordListGroup: WordListGroup
     ) throws -> [DefinitionEntry] {
-        guard let url = bundle.url(
-            forResource: resourceName,
-            withExtension: "txt",
-            subdirectory: resourceSubdirectory
-        ) ?? bundle.url(forResource: resourceName, withExtension: "txt") else {
+        guard let url = BundledWordListResource.url(
+            bundle: bundle,
+            baseResourceName: resourceName,
+            group: wordListGroup
+        ) else {
             throw DefinitionsLookupError.missingDefinitionsList
         }
 

@@ -56,13 +56,13 @@ struct AnagramSearchService: Sendable {
     init(
         bundle: Bundle = .main,
         resourceName: String = "crossword_words",
-        resourceSubdirectory: String? = "wordlists/test"
+        wordListGroup: WordListGroup = .defaultGroup
     ) {
         self.entryLoader = {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
-                resourceSubdirectory: resourceSubdirectory
+                wordListGroup: wordListGroup
             )
         }
     }
@@ -96,13 +96,13 @@ struct AnagramSearchService: Sendable {
     private static func loadEntries(
         bundle: Bundle,
         resourceName: String,
-        resourceSubdirectory: String?
+        wordListGroup: WordListGroup
     ) throws -> [AnagramEntry] {
-        guard let url = bundle.url(
-            forResource: resourceName,
-            withExtension: "txt",
-            subdirectory: resourceSubdirectory
-        ) ?? bundle.url(forResource: resourceName, withExtension: "txt") else {
+        guard let url = BundledWordListResource.url(
+            bundle: bundle,
+            baseResourceName: resourceName,
+            group: wordListGroup
+        ) else {
             throw AnagramSearchError.missingWordList
         }
 

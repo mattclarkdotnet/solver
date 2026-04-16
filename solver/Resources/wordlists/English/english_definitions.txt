@@ -1,0 +1,29 @@
+alert|uh-LURT|Quick to notice danger or pay close attention.
+alter|AWL-tuhr|To change something while keeping its core identity.
+angle|ANG-guhl|The space between two intersecting lines or surfaces.
+angel|AYN-juhl|A spiritual being often shown as a messenger or protector.
+apple|AP-uhl|The round fruit of an apple tree.
+beach|BEECH|A sandy or pebbly shore beside a body of water.
+bread|BRED|A baked food made from flour and water.
+cater|KAY-tuhr|To provide food or service for a need or event.
+crate|KRAYT|A large box used for carrying or storing goods.
+earth|URTH|The planet on which people live.
+glean|GLEEN|To gather little by little from different sources.
+grape|GRAYP|A small round fruit that grows in clusters on a vine.
+hater|HAY-tuhr|A person who strongly dislikes someone or something.
+heart|HAHRT|The organ that pumps blood through the body.
+later|LAY-tuhr|At a time after the present one.
+notes|NOHTS|Written records or brief comments.
+panel|PAN-uhl|A flat section forming part of a surface or structure.
+petal|PET-uhl|One of the colored parts of a flower.
+plane|PLAYN|A flat surface or an aircraft.
+plate|PLAYT|A flat dish used for serving food.
+react|ree-AKT|To respond to something that has happened.
+river|RIV-uhr|A large natural stream of flowing water.
+smile|SMYL|A pleased or friendly expression made with the mouth.
+stone|STOHN|A hard solid piece of rock.
+table|TAY-buhl|A piece of furniture with a flat top.
+tones|TOHNZ|Sounds with a particular quality or pitch.
+trace|TRAYS|A slight mark or sign showing something existed.
+water|WAW-tuhr|The clear liquid that forms seas, lakes, and rain.
+world|WURLD|The earth together with all its people and things.
