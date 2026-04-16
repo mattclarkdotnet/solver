@@ -1,13 +1,12 @@
 # Roadmap
 
 ## Now
-- Make the tool list horizontally scrollable instead of having the "..." for more tools
+- Put a border around the main input field
 
 ## Next
-- Put a border around the main input field
+- Add user preferences.
 
 ## Later
-- Put a border around the main input field
 - Add user preferences.
 - Add selectable default crossword word lists.
 - Add selectable default Scrabble word lists.
@@ -25,6 +24,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Make the tool list horizontally scrollable instead of having the "..." for more tools
 - Remove the title header
 - Add "start letter", "end letter" and "other letters" inputs to the scrabble word finder tab
 - Add thesaurus lookup using test thesaurus data.

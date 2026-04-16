@@ -37,9 +37,9 @@ private struct SolverHomeView: View {
             definitionsService: definitionsService,
             thesaurusService: thesaurusService
         )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-            .background(Color(.systemGroupedBackground))
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+        .background(Color(.systemGroupedBackground))
     }
 }
 
@@ -61,6 +61,14 @@ private struct PatternEntryField: View {
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            isPatternFieldFocused
+                                ? Color.accentColor : Color(.separator).opacity(0.6),
+                            lineWidth: isPatternFieldFocused ? 2 : 1
+                        )
                 )
                 .focused($isPatternFieldFocused)
                 .accessibilityIdentifier("pattern-field")
@@ -144,12 +152,15 @@ private struct ToolSelector: View {
                             .padding(.vertical, 10)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(selectedTool == tool ? Color.accentColor : Color(.secondarySystemBackground))
+                                    .fill(
+                                        selectedTool == tool
+                                            ? Color.accentColor : Color(.secondarySystemBackground))
                             )
                             .overlay(
                                 Capsule(style: .continuous)
                                     .strokeBorder(
-                                        selectedTool == tool ? Color.clear : Color(.separator).opacity(0.3)
+                                        selectedTool == tool
+                                            ? Color.clear : Color(.separator).opacity(0.3)
                                     )
                             )
                         }
@@ -198,7 +209,8 @@ private struct CrosswordToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: c?t or ice-cream",
-                    instructions: "Letters stay fixed, `?` or `.` or spaces match one letter, `*` or `+` match a run, and `-` splits words."
+                    instructions:
+                        "Letters stay fixed, `?` or `.` or spaces match one letter, `*` or `+` match a run, and `-` splits words."
                 )
                 content
             }
@@ -232,7 +244,8 @@ private struct CrosswordToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with a pattern",
-                message: "Enter a word or phrase pattern above and live results will appear here from the bundled offline list.",
+                message:
+                    "Enter a word or phrase pattern above and live results will appear here from the bundled offline list.",
                 symbol: "character.cursor.ibeam",
                 tint: .secondary
             )
@@ -248,7 +261,8 @@ private struct CrosswordToolView: View {
         case .empty(let pattern):
             SearchMessageCard(
                 title: "No matches for \(pattern)",
-                message: "Try widening the pattern with `?` for a single unknown letter or `*` for a longer run.",
+                message:
+                    "Try widening the pattern with `?` for a single unknown letter or `*` for a longer run.",
                 symbol: "text.magnifyingglass",
                 tint: .secondary
             )
@@ -301,7 +315,8 @@ private struct CrosswordToolView: View {
                 return
             }
 
-            presentationState = resolvedMatches.isEmpty
+            presentationState =
+                resolvedMatches.isEmpty
                 ? .empty(query.normalizedPattern)
                 : .results(resolvedMatches)
         } catch is CancellationError {
@@ -324,7 +339,8 @@ private struct AnagramToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: stare",
-                    instructions: "Anagram solving currently supports one word made of letters only and searches the bundled test crossword list offline."
+                    instructions:
+                        "Anagram solving currently supports one word made of letters only and searches the bundled test crossword list offline."
                 )
                 content
             }
@@ -358,7 +374,8 @@ private struct AnagramToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with letters",
-                message: "Enter a single word above and the anagram tab will look for rearrangements in the bundled test crossword list.",
+                message:
+                    "Enter a single word above and the anagram tab will look for rearrangements in the bundled test crossword list.",
                 symbol: "arrow.trianglehead.2.clockwise",
                 tint: .secondary
             )
@@ -366,7 +383,8 @@ private struct AnagramToolView: View {
         case .loading:
             SearchMessageCard(
                 title: "Searching for anagrams",
-                message: "The anagram tool is checking the bundled test crossword list on this device.",
+                message:
+                    "The anagram tool is checking the bundled test crossword list on this device.",
                 symbol: "hourglass",
                 tint: .blue
             )
@@ -427,7 +445,8 @@ private struct AnagramToolView: View {
                 return
             }
 
-            presentationState = resolvedMatches.isEmpty
+            presentationState =
+                resolvedMatches.isEmpty
                 ? .empty(query.letters)
                 : .results(resolvedMatches)
         } catch is CancellationError {
@@ -450,7 +469,8 @@ private struct ScrabbleToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: stare? or trades",
-                    instructions: "Enter the letters in your rack. Use `?` for blank tiles. Add board letters below to constrain where known letters already appear in the word."
+                    instructions:
+                        "Enter the letters in your rack. Use `?` for blank tiles. Add board letters below to constrain where known letters already appear in the word."
                 )
                 ScrabbleBoardFields(session: session)
                 content
@@ -490,7 +510,8 @@ private struct ScrabbleToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with rack tiles",
-                message: "Enter your rack above, then optionally add board letters to constrain the start, end, or interior letters of a matching word from the bundled test list.",
+                message:
+                    "Enter your rack above, then optionally add board letters to constrain the start, end, or interior letters of a matching word from the bundled test list.",
                 symbol: "textformat.abc",
                 tint: .secondary
             )
@@ -559,7 +580,8 @@ private struct ScrabbleToolView: View {
                 return
             }
 
-            presentationState = resolvedMatches.isEmpty
+            presentationState =
+                resolvedMatches.isEmpty
                 ? .empty(query.normalizedDescription)
                 : .results(resolvedMatches)
         } catch is CancellationError {
@@ -607,9 +629,11 @@ private struct ScrabbleBoardFields: View {
                 field: .other
             )
 
-            Text("Board letters stay fixed on the board. If start or end is empty, `other letters` can still satisfy that edge of the word.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            Text(
+                "Board letters stay fixed on the board. If start or end is empty, `other letters` can still satisfy that edge of the word."
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
     }
 
@@ -662,7 +686,8 @@ private struct DefinitionsToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: solver or word game",
-                    instructions: "Enter a literal word or phrase to look it up in the bundled offline test definitions list."
+                    instructions:
+                        "Enter a literal word or phrase to look it up in the bundled offline test definitions list."
                 )
                 content
             }
@@ -696,7 +721,8 @@ private struct DefinitionsToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with a word",
-                message: "Enter a literal word or phrase above and the definitions tab will search the bundled offline test definitions list.",
+                message:
+                    "Enter a literal word or phrase above and the definitions tab will search the bundled offline test definitions list.",
                 symbol: "book.closed",
                 tint: .secondary
             )
@@ -704,7 +730,8 @@ private struct DefinitionsToolView: View {
         case .loading:
             SearchMessageCard(
                 title: "Looking up definitions",
-                message: "The definitions tool is checking the bundled test definitions list on this device.",
+                message:
+                    "The definitions tool is checking the bundled test definitions list on this device.",
                 symbol: "hourglass",
                 tint: .blue
             )
@@ -765,7 +792,8 @@ private struct DefinitionsToolView: View {
                 return
             }
 
-            presentationState = resolvedEntry.map(DefinitionsPresentationState.result)
+            presentationState =
+                resolvedEntry.map(DefinitionsPresentationState.result)
                 ?? .empty(query.lookupKey)
         } catch is CancellationError {
             return
@@ -787,7 +815,8 @@ private struct ThesaurusToolView: View {
                 PatternEntryField(
                     session: session,
                     placeholder: "Example: solver or word game",
-                    instructions: "Enter a literal word or phrase to look it up in the bundled offline test thesaurus list."
+                    instructions:
+                        "Enter a literal word or phrase to look it up in the bundled offline test thesaurus list."
                 )
                 content
             }
@@ -821,7 +850,8 @@ private struct ThesaurusToolView: View {
         case .idle:
             SearchMessageCard(
                 title: "Start with a word",
-                message: "Enter a literal word or phrase above and the thesaurus tab will search the bundled offline test thesaurus list.",
+                message:
+                    "Enter a literal word or phrase above and the thesaurus tab will search the bundled offline test thesaurus list.",
                 symbol: "text.book.closed",
                 tint: .secondary
             )
@@ -829,7 +859,8 @@ private struct ThesaurusToolView: View {
         case .loading:
             SearchMessageCard(
                 title: "Looking up synonyms",
-                message: "The thesaurus tool is checking the bundled test thesaurus list on this device.",
+                message:
+                    "The thesaurus tool is checking the bundled test thesaurus list on this device.",
                 symbol: "hourglass",
                 tint: .blue
             )
@@ -890,7 +921,8 @@ private struct ThesaurusToolView: View {
                 return
             }
 
-            presentationState = resolvedEntry.map(ThesaurusPresentationState.result)
+            presentationState =
+                resolvedEntry.map(ThesaurusPresentationState.result)
                 ?? .empty(query.lookupKey)
         } catch is CancellationError {
             return
