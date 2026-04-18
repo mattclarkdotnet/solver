@@ -49,23 +49,29 @@ struct DefinitionsLookupService: Sendable {
         resourceName: String = "definitions",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        self.entryLoader = {
+        let cachedEntries = Result {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
         }
+        self.entryLoader = {
+            try cachedEntries.get()
+        }
     }
 
     init(entries: [String]) {
         let parsedEntries = try? entries.compactMap(Self.parseEntry)
-        self.entryLoader = {
+        let cachedEntries = Result {
             guard let parsedEntries, parsedEntries.isEmpty == false else {
                 throw DefinitionsLookupError.emptyDefinitionsList
             }
 
             return parsedEntries
+        }
+        self.entryLoader = {
+            try cachedEntries.get()
         }
     }
 

@@ -202,23 +202,29 @@ struct ScrabbleSearchService: Sendable {
         resourceName: String = "scrabble_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        self.entryLoader = {
+        let cachedEntries = Result {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
         }
+        self.entryLoader = {
+            try cachedEntries.get()
+        }
     }
 
     init(entries: [String]) {
         let parsedEntries = entries.compactMap(ScrabbleEntry.init)
-        self.entryLoader = {
+        let cachedEntries = Result {
             guard parsedEntries.isEmpty == false else {
                 throw ScrabbleSearchError.emptyWordList
             }
 
             return parsedEntries
+        }
+        self.entryLoader = {
+            try cachedEntries.get()
         }
     }
 

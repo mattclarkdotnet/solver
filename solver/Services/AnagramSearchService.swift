@@ -58,23 +58,29 @@ struct AnagramSearchService: Sendable {
         resourceName: String = "crossword_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        self.entryLoader = {
+        let cachedEntries = Result {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
         }
+        self.entryLoader = {
+            try cachedEntries.get()
+        }
     }
 
     init(entries: [String]) {
         let parsedEntries = entries.compactMap(AnagramEntry.init)
-        self.entryLoader = {
+        let cachedEntries = Result {
             guard parsedEntries.isEmpty == false else {
                 throw AnagramSearchError.emptyWordList
             }
 
             return parsedEntries
+        }
+        self.entryLoader = {
+            try cachedEntries.get()
         }
     }
 

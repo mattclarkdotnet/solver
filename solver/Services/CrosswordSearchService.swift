@@ -27,12 +27,15 @@ struct CrosswordSearchService: Sendable {
         resourceName: String = "crossword_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        self.wordListLoader = {
+        let cachedWordList = Result {
             try Self.loadWordList(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
+        }
+        self.wordListLoader = {
+            try cachedWordList.get()
         }
     }
 
@@ -41,12 +44,15 @@ struct CrosswordSearchService: Sendable {
         name: String = "Inline test list"
     ) {
         let parsedEntries = entries.compactMap(CrosswordEntry.init)
-        self.wordListLoader = {
+        let cachedWordList = Result {
             guard parsedEntries.isEmpty == false else {
                 throw CrosswordSearchError.emptyWordList
             }
 
             return CrosswordWordList(name: name, entries: parsedEntries)
+        }
+        self.wordListLoader = {
+            try cachedWordList.get()
         }
     }
 

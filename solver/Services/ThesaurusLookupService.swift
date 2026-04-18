@@ -51,23 +51,29 @@ struct ThesaurusLookupService: Sendable {
         resourceName: String = "thesaurus",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        self.entryLoader = {
+        let cachedEntries = Result {
             try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
         }
+        self.entryLoader = {
+            try cachedEntries.get()
+        }
     }
 
     init(entries: [String]) {
         let parsedEntries = try? entries.map(Self.parseEntry)
-        self.entryLoader = {
+        let cachedEntries = Result {
             guard let parsedEntries, parsedEntries.isEmpty == false else {
                 throw ThesaurusLookupError.emptyThesaurusList
             }
 
             return parsedEntries
+        }
+        self.entryLoader = {
+            try cachedEntries.get()
         }
     }
 
