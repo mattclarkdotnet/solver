@@ -1,5 +1,12 @@
 import SwiftUI
 
+private enum SolverLayoutMetrics {
+    static let horizontalInset: CGFloat = 20
+    static let inputTextInset: CGFloat = 14
+    static let floatingControlsBottomPadding: CGFloat = 12
+    static let toolContentBottomPadding: CGFloat = 104
+}
+
 struct ContentView: View {
     @StateObject private var session: SolverSession
     @State private var services: SolverServices
@@ -7,7 +14,8 @@ struct ContentView: View {
     init() {
         let session = SolverSession()
         _session = StateObject(wrappedValue: session)
-        _services = State(initialValue: SolverServices(wordListGroup: session.selectedWordListGroup))
+        _services = State(
+            initialValue: SolverServices(wordListGroup: session.selectedWordListGroup))
     }
 
     var body: some View {
@@ -18,7 +26,8 @@ struct ContentView: View {
             scrabbleService: services.scrabbleService,
             anagramService: services.anagramService,
             definitionsService: services.definitionsService,
-            thesaurusService: services.thesaurusService
+            thesaurusService: services.thesaurusService,
+            solutionDetailsService: services.solutionDetailsService
         )
         .onChange(of: session.selectedWordListGroup) { _, newValue in
             services = SolverServices(wordListGroup: newValue)
@@ -34,8 +43,12 @@ private struct SolverHomeView: View {
     let anagramService: AnagramSearchService
     let definitionsService: DefinitionsLookupService
     let thesaurusService: ThesaurusLookupService
+    let solutionDetailsService: SolutionDetailsLookupService
 
     @State private var presentedSheet: SolverSecondarySheet?
+    @State private var presentedSolutionWord: String?
+    @State private var presentedSolutionOrigin: SolutionDetailsPresentationOrigin?
+    @State private var solutionDetailsState: SolutionDetailsPresentationState = .idle
 
     var body: some View {
         ToolTabs(
@@ -45,22 +58,104 @@ private struct SolverHomeView: View {
             scrabbleService: scrabbleService,
             anagramService: anagramService,
             definitionsService: definitionsService,
-            thesaurusService: thesaurusService
+            thesaurusService: thesaurusService,
+            onPresentSolutionDetails: presentSolutionDetails,
+            onEndSolutionHover: endSolutionHover
         )
-        .padding(.horizontal, 20)
+        .padding(.horizontal, SolverLayoutMetrics.horizontalInset)
         .padding(.top, 12)
         .background(Color(.systemGroupedBackground))
-        // Secondary app chrome lives in a bottom inset so tool content can scroll independently.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay {
+            if let presentedSolutionWord {
+                Color.black.opacity(0.09)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        dismissSolutionDetails()
+                    }
+
+                SolutionDetailsOverlayCard(
+                    displayWord: presentedSolutionWord,
+                    state: solutionDetailsState,
+                    onDismiss: dismissSolutionDetails
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, SolverLayoutMetrics.horizontalInset)
+            }
+        }
+        .overlay(alignment: .bottom) {
             BottomStatusBar(
                 session: session,
                 onPresentSheet: { presentedSheet = $0 }
             )
+            .padding(.horizontal, SolverLayoutMetrics.horizontalInset)
+            .padding(.bottom, SolverLayoutMetrics.floatingControlsBottomPadding)
         }
         .sheet(item: $presentedSheet) { sheet in
             SolverSecondarySheetView(
                 sheet: sheet,
                 session: session
+            )
+        }
+        .task(id: solutionDetailsTaskID) {
+            await refreshSolutionDetails()
+        }
+    }
+
+    private var solutionDetailsTaskID: String {
+        presentedSolutionWord ?? ""
+    }
+
+    private func presentSolutionDetails(
+        for displayWord: String,
+        origin: SolutionDetailsPresentationOrigin
+    ) {
+        presentedSolutionWord = displayWord
+        presentedSolutionOrigin = origin
+        solutionDetailsState = .loading(displayWord: displayWord)
+    }
+
+    private func endSolutionHover() {
+        if presentedSolutionOrigin == .hover {
+            dismissSolutionDetails()
+        }
+    }
+
+    private func dismissSolutionDetails() {
+        presentedSolutionWord = nil
+        presentedSolutionOrigin = nil
+        solutionDetailsState = .idle
+    }
+
+    @MainActor
+    private func refreshSolutionDetails() async {
+        guard let presentedSolutionWord else {
+            solutionDetailsState = .idle
+            return
+        }
+
+        solutionDetailsState = .loading(displayWord: presentedSolutionWord)
+
+        do {
+            let details = try await solutionDetailsService.lookupDetails(for: presentedSolutionWord)
+
+            guard Task.isCancelled == false, self.presentedSolutionWord == presentedSolutionWord else {
+                return
+            }
+
+            solutionDetailsState =
+                details.hasAnyContent
+                ? .loaded(details)
+                : .empty(displayWord: presentedSolutionWord)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard self.presentedSolutionWord == presentedSolutionWord else {
+                return
+            }
+
+            solutionDetailsState = .failed(
+                displayWord: presentedSolutionWord,
+                message: error.localizedDescription
             )
         }
     }
@@ -73,6 +168,7 @@ private struct SolverServices {
     let anagramService: AnagramSearchService
     let definitionsService: DefinitionsLookupService
     let thesaurusService: ThesaurusLookupService
+    let solutionDetailsService: SolutionDetailsLookupService
 
     init(wordListGroup: WordListGroup) {
         self.wordListGroup = wordListGroup
@@ -81,6 +177,10 @@ private struct SolverServices {
         self.anagramService = AnagramSearchService(wordListGroup: wordListGroup)
         self.definitionsService = DefinitionsLookupService(wordListGroup: wordListGroup)
         self.thesaurusService = ThesaurusLookupService(wordListGroup: wordListGroup)
+        self.solutionDetailsService = SolutionDetailsLookupService(
+            definitionsService: definitionsService,
+            thesaurusService: thesaurusService
+        )
     }
 }
 
@@ -134,6 +234,8 @@ private struct ToolTabs: View {
     let anagramService: AnagramSearchService
     let definitionsService: DefinitionsLookupService
     let thesaurusService: ThesaurusLookupService
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -153,19 +255,25 @@ private struct ToolTabs: View {
             CrosswordToolView(
                 session: session,
                 wordListGroup: wordListGroup,
-                searchService: crosswordService
+                searchService: crosswordService,
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
             )
         case .scrabble:
             ScrabbleToolView(
                 session: session,
                 wordListGroup: wordListGroup,
-                searchService: scrabbleService
+                searchService: scrabbleService,
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
             )
         case .anagramSolver:
             AnagramToolView(
                 session: session,
                 wordListGroup: wordListGroup,
-                searchService: anagramService
+                searchService: anagramService,
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
             )
         case .anagramGenerator:
             PlaceholderToolView(tool: .anagramGenerator)
@@ -275,17 +383,7 @@ private struct BottomStatusBar: View {
             Spacer(minLength: 0)
             SecondaryActionsButton(isPresented: $isSecondaryMenuPresented)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
-        .background(
-            Rectangle()
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.08), radius: 8, y: -2)
-        )
-        .overlay(alignment: .top) {
-            Divider()
-        }
+        .padding(.vertical, 8)
         .accessibilityIdentifier("bottom-status-bar")
         .confirmationDialog(
             "Word list",
@@ -298,7 +396,9 @@ private struct BottomStatusBar: View {
                 }
             }
         } message: {
-            Text("Choose the bundled word-list group Solver should use across the implemented tools.")
+            Text(
+                "Choose the bundled word-list group Solver should use across the implemented tools."
+            )
         }
         .confirmationDialog(
             "More",
@@ -325,41 +425,22 @@ private struct WordListStatusButton: View {
     @Binding var isPresented: Bool
 
     var body: some View {
-        Group {
-            Button {
-                isPresented = true
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "text.book.closed")
-                        .font(.footnote.weight(.semibold))
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Word list")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        Text(session.selectedWordListGroup.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                    }
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+        Button {
+            isPresented = true
+        } label: {
+            Text(session.selectedWordListGroup.title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
+                    Capsule(style: .continuous)
+                        .fill(.ultraThinMaterial)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color(.separator).opacity(0.35))
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color(.separator).opacity(0.18))
                 )
-            }
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
@@ -374,29 +455,28 @@ private struct SecondaryActionsButton: View {
     @Binding var isPresented: Bool
 
     var body: some View {
-        Group {
-            Button {
-                isPresented = true
-            } label: {
-                Label("More", systemImage: "line.3.horizontal")
-                    .labelStyle(.iconOnly)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color(.separator).opacity(0.35))
-                    )
-            }
+        Button {
+            isPresented = true
+        } label: {
+            Label("More", systemImage: "line.3.horizontal")
+                .labelStyle(.iconOnly)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color(.separator).opacity(0.18))
+                )
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("More")
         .accessibilityHint("Open preferences, help, and about.")
+        .accessibilityIdentifier("secondary-actions-button")
     }
 }
 
@@ -463,9 +543,11 @@ private struct PreferencesSheetContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Choose the bundled word-list group Solver should use across the implemented tools.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            Text(
+                "Choose the bundled word-list group Solver should use across the implemented tools."
+            )
+            .font(.body)
+            .foregroundStyle(.secondary)
 
             VStack(spacing: 12) {
                 ForEach(WordListGroup.allCases) { group in
@@ -516,15 +598,18 @@ private struct HelpSheetContent: View {
         VStack(alignment: .leading, spacing: 18) {
             helpSection(
                 title: "Crossword",
-                body: "Use letters to lock positions, `?` or `.` for one unknown letter, `*` or `+` for a run of letters, and `-` to split words."
+                body:
+                    "Use letters to lock positions, `?` or `.` for one unknown letter, `*` or `+` for a run of letters, and `-` to split words."
             )
             helpSection(
                 title: "Scrabble",
-                body: "Use the main field for rack letters, `?` for blanks, and the extra fields for letters already on the board."
+                body:
+                    "Use the main field for rack letters, `?` for blanks, and the extra fields for letters already on the board."
             )
             helpSection(
                 title: "Definitions and Thesaurus",
-                body: "Enter literal words or phrases only. These tools do not support wildcard or rack-style input."
+                body:
+                    "Enter literal words or phrases only. These tools do not support wildcard or rack-style input."
             )
         }
     }
@@ -546,13 +631,17 @@ private struct AboutSheetContent: View {
             Text("Solver")
                 .font(.title2.weight(.semibold))
 
-            Text("Solver is an offline word-game helper for crossword patterns, Scrabble racks, anagrams, definitions, and thesaurus lookup.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            Text(
+                "Solver is an offline word-game helper for crossword patterns, Scrabble racks, anagrams, definitions, and thesaurus lookup."
+            )
+            .font(.body)
+            .foregroundStyle(.secondary)
 
-            Text("All implemented searches and lookups run locally from bundled word lists on this device.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            Text(
+                "All implemented searches and lookups run locally from bundled word lists on this device."
+            )
+            .font(.body)
+            .foregroundStyle(.secondary)
         }
     }
 }
@@ -561,6 +650,8 @@ private struct CrosswordToolView: View {
     @ObservedObject var session: SolverSession
     let wordListGroup: WordListGroup
     let searchService: CrosswordSearchService
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
 
     @State private var presentationState: CrosswordPresentationState = .idle
 
@@ -569,14 +660,14 @@ private struct CrosswordToolView: View {
             VStack(alignment: .leading, spacing: 18) {
                 PatternEntryField(
                     session: session,
-                    placeholder: "Example: c?t or ice-cream",
+                    placeholder: "Example: c?t or pancho villa",
                     instructions:
-                        "Letters stay fixed, `?` or `.` or spaces match one letter, `*` or `+` match a run, and `-` splits words."
+                        "Letters stay fixed, `?` or `.` match one letter, `*` or `+` match a run, and spaces or `-` split words."
                 )
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .task(id: queryFingerprint) {
@@ -645,7 +736,11 @@ private struct CrosswordToolView: View {
             )
             .accessibilityIdentifier("crossword-status-card")
         case .results(let matches):
-            WordResultsCard(entries: matches.map(\.displayText))
+            WordResultsCard(
+                entries: matches.map(\.displayText),
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
+            )
                 .accessibilityIdentifier("crossword-results-card")
         }
     }
@@ -692,6 +787,8 @@ private struct AnagramToolView: View {
     @ObservedObject var session: SolverSession
     let wordListGroup: WordListGroup
     let searchService: AnagramSearchService
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
 
     @State private var presentationState: AnagramPresentationState = .idle
 
@@ -700,14 +797,14 @@ private struct AnagramToolView: View {
             VStack(alignment: .leading, spacing: 18) {
                 PatternEntryField(
                     session: session,
-                    placeholder: "Example: stare",
+                    placeholder: "Example: stare or villap-ancho",
                     instructions:
-                        "Anagram solving currently supports one word made of letters only and searches the bundled test crossword list offline."
+                        "Anagram solving supports letters-only input, including separated phrase input such as `villap-ancho`, and searches the bundled crossword list offline."
                 )
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .task(id: queryFingerprint) {
@@ -726,7 +823,7 @@ private struct AnagramToolView: View {
         case .invalid(let message):
             "invalid:\(wordListGroup.rawValue):\(message)"
         case .valid(let query):
-            "valid:\(wordListGroup.rawValue):\(query.letters)"
+            "valid:\(wordListGroup.rawValue):\(query.normalizedInput)"
         }
     }
 
@@ -737,7 +834,7 @@ private struct AnagramToolView: View {
             SearchMessageCard(
                 title: "Start with letters",
                 message:
-                    "Enter a single word above and the anagram tab will look for rearrangements in the bundled test crossword list.",
+                    "Enter letters above and the anagram tab will look for rearrangements in the bundled crossword list, including phrase entries.",
                 symbol: "arrow.trianglehead.2.clockwise",
                 tint: .secondary
             )
@@ -754,7 +851,7 @@ private struct AnagramToolView: View {
         case .empty(let letters):
             SearchMessageCard(
                 title: "No anagrams for \(letters)",
-                message: "Try another set of letters from the test crossword list.",
+                message: "Try another arrangement of letters from the selected bundled crossword list.",
                 symbol: "text.magnifyingglass",
                 tint: .secondary
             )
@@ -776,7 +873,11 @@ private struct AnagramToolView: View {
             )
             .accessibilityIdentifier("anagram-status-card")
         case .results(let matches):
-            WordResultsCard(entries: matches.map(\.displayText))
+            WordResultsCard(
+                entries: matches.map(\.displayText),
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
+            )
                 .accessibilityIdentifier("anagram-results-card")
         }
     }
@@ -809,7 +910,7 @@ private struct AnagramToolView: View {
 
             presentationState =
                 resolvedMatches.isEmpty
-                ? .empty(query.letters)
+                ? .empty(query.normalizedInput)
                 : .results(resolvedMatches)
         } catch is CancellationError {
             return
@@ -823,6 +924,8 @@ private struct ScrabbleToolView: View {
     @ObservedObject var session: SolverSession
     let wordListGroup: WordListGroup
     let searchService: ScrabbleSearchService
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
 
     @State private var presentationState: ScrabblePresentationState = .idle
 
@@ -839,7 +942,7 @@ private struct ScrabbleToolView: View {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .task(id: queryFingerprint) {
@@ -912,7 +1015,11 @@ private struct ScrabbleToolView: View {
             )
             .accessibilityIdentifier("scrabble-status-card")
         case .results(let matches):
-            WordResultsCard(entries: matches.map(\.displayText))
+            WordResultsCard(
+                entries: matches.map(\.displayText),
+                onPresentSolutionDetails: onPresentSolutionDetails,
+                onEndSolutionHover: onEndSolutionHover
+            )
                 .accessibilityIdentifier("scrabble-results-card")
         }
     }
@@ -1056,7 +1163,7 @@ private struct DefinitionsToolView: View {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .task(id: queryFingerprint) {
@@ -1186,7 +1293,7 @@ private struct ThesaurusToolView: View {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
         .task(id: queryFingerprint) {
@@ -1299,32 +1406,161 @@ private struct ThesaurusToolView: View {
 
 private struct WordResultsCard: View {
     let entries: [String]
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(entries, id: \.self) { entry in
-                    Text(entry)
-                        .font(.body.monospaced())
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
-                        )
-                }
+        LazyVStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(entries.enumerated()), id: \.offset) { index, entry in
+                WordResultRow(
+                    entry: entry,
+                    showsDivider: index < entries.count - 1,
+                    onPresentSolutionDetails: onPresentSolutionDetails,
+                    onEndSolutionHover: onEndSolutionHover
+                )
             }
         }
-        .padding(20)
+        .padding(.leading, SolverLayoutMetrics.inputTextInset)
+        .padding(.top, 4)
+    }
+}
+
+private struct WordResultRow: View {
+    let entry: String
+    let showsDivider: Bool
+    let onPresentSolutionDetails: (String, SolutionDetailsPresentationOrigin) -> Void
+    let onEndSolutionHover: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(entry)
+                .font(.body.monospaced())
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if showsDivider {
+                Divider()
+            }
+        }
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 0.35) {
+            onPresentSolutionDetails(entry, .longPress)
+        }
+        .accessibilityHint("Long press for local definition and thesaurus details.")
+        .modifier(SolutionHoverPresentationModifier(
+            onHoverStart: {
+                onPresentSolutionDetails(entry, .hover)
+            },
+            onHoverEnd: onEndSolutionHover
+        ))
+    }
+}
+
+private struct SolutionHoverPresentationModifier: ViewModifier {
+    let onHoverStart: () -> Void
+    let onHoverEnd: () -> Void
+
+    func body(content: Content) -> some View {
+        content.onContinuousHover { phase in
+            switch phase {
+            case .active:
+                onHoverStart()
+            case .ended:
+                onHoverEnd()
+            }
+        }
+    }
+}
+
+private struct SolutionDetailsOverlayCard: View {
+    let displayWord: String
+    let state: SolutionDetailsPresentationState
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(displayWord)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button("Done") {
+                    onDismiss()
+                }
+                .font(.footnote.weight(.semibold))
+            }
+
+            content
+        }
+        .frame(maxWidth: 340, alignment: .leading)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(.systemBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.3))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.12))
         )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 10)
+        .accessibilityIdentifier("solution-details-overlay")
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch state {
+        case .idle, .loading:
+            VStack(alignment: .leading, spacing: 12) {
+                ProgressView()
+                Text("Loading local definition and thesaurus details.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        case .empty:
+            Text("No bundled definition or thesaurus entry is available for this solution in the current word list.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .failed(_, let message):
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .loaded(let details):
+            VStack(alignment: .leading, spacing: 16) {
+                if let definition = details.definition {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Definition")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Text(definition.pronunciation)
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+
+                        Text(definition.definition)
+                            .font(.body)
+                    }
+                }
+
+                if let thesaurus = details.thesaurus {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Synonyms")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        ForEach(Array(thesaurus.synonyms.enumerated()), id: \.offset) { index, synonym in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(synonym)
+                                    .font(.body)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if index < thesaurus.synonyms.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1345,15 +1581,8 @@ private struct DefinitionResultCard: View {
                 .foregroundStyle(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.3))
-        )
+        .padding(.leading, SolverLayoutMetrics.inputTextInset)
+        .padding(.top, 4)
     }
 }
 
@@ -1370,29 +1599,22 @@ private struct ThesaurusResultCard: View {
                 .foregroundStyle(.secondary)
 
             LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(entry.synonyms, id: \.self) { synonym in
-                    Text(synonym)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
-                        )
+                ForEach(Array(entry.synonyms.enumerated()), id: \.offset) { index, synonym in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(synonym)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if index < entry.synonyms.count - 1 {
+                            Divider()
+                        }
+                    }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.3))
-        )
+        .padding(.leading, SolverLayoutMetrics.inputTextInset)
+        .padding(.top, 4)
     }
 }
 
@@ -1407,7 +1629,7 @@ private struct PlaceholderToolView: View {
                 symbol: tool.systemImage,
                 tint: .secondary
             )
-            .padding(.bottom, 32)
+            .padding(.bottom, SolverLayoutMetrics.toolContentBottomPadding)
         }
         .scrollIndicators(.hidden)
     }
@@ -1420,29 +1642,24 @@ private struct SearchMessageCard: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
-                .font(.title2.weight(.semibold))
+                .font(.headline.weight(.semibold))
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)
 
-            Text(title)
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
 
-            Text(message)
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text(message)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.3))
-        )
+        .padding(.leading, SolverLayoutMetrics.inputTextInset)
+        .padding(.top, 4)
         .accessibilityElement(children: .combine)
     }
 }
@@ -1490,6 +1707,19 @@ private enum ThesaurusPresentationState {
     case invalid(String)
     case failed(String)
     case result(ThesaurusEntry)
+}
+
+private enum SolutionDetailsPresentationOrigin {
+    case longPress
+    case hover
+}
+
+private enum SolutionDetailsPresentationState {
+    case idle
+    case loading(displayWord: String)
+    case empty(displayWord: String)
+    case failed(displayWord: String, message: String)
+    case loaded(SolutionDetails)
 }
 
 struct ContentView_Previews: PreviewProvider {

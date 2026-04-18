@@ -21,23 +21,30 @@ final class SolverUITests: XCTestCase {
 
         replaceText(in: patternField, from: "", to: "apple")
         XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
-        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("Test"))
+        XCTAssertEqual(activeWordListLabel(in: app), "Test")
 
         selectWordList(named: "English", in: app)
         XCTAssertTrue(app.otherElements["crossword-results-card"].waitForExistence(timeout: 5))
-        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("English"))
+        XCTAssertEqual(activeWordListLabel(in: app), "English")
 
         selectWordList(named: "Test", in: app)
         XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
-        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("Test"))
+        XCTAssertEqual(activeWordListLabel(in: app), "Test")
         openSecondarySheet(named: "About", in: app)
         XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 5))
         app.buttons["Done"].tap()
 
         replaceText(in: patternField, from: "apple", to: "c?t")
         XCTAssertTrue(app.staticTexts["Cat"].waitForExistence(timeout: 5))
+        app.staticTexts["Cat"].press(forDuration: 0.5)
+        XCTAssertTrue(app.staticTexts["A small domesticated feline animal."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["feline"].waitForExistence(timeout: 5))
+        app.buttons["Done"].tap()
 
-        replaceText(in: patternField, from: "c?t", to: "ice-")
+        replaceText(in: patternField, from: "c?t", to: "p????? v????")
+        XCTAssertTrue(app.staticTexts["Pancho Villa"].waitForExistence(timeout: 5))
+
+        replaceText(in: patternField, from: "p????? v????", to: "ice-")
         XCTAssertTrue(app.staticTexts["Fix the pattern first"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Patterns cannot end with a word break."].waitForExistence(timeout: 5))
 
@@ -75,7 +82,10 @@ final class SolverUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Aster"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Rates"].waitForExistence(timeout: 5))
 
-        replaceText(in: patternField, from: "stare", to: "st?re")
+        replaceText(in: patternField, from: "stare", to: "villap-ancho")
+        XCTAssertTrue(app.staticTexts["Pancho Villa"].waitForExistence(timeout: 5))
+
+        replaceText(in: patternField, from: "villap-ancho", to: "st?re")
         XCTAssertTrue(app.staticTexts["Fix the input first"].waitForExistence(timeout: 5))
         XCTAssertTrue(
             app.staticTexts["Anagram solving currently supports letters only, without wildcards."].waitForExistence(timeout: 5)
@@ -166,12 +176,17 @@ final class SolverUITests: XCTestCase {
 
     @MainActor
     private func wordListPreferencesControl(in app: XCUIApplication) -> XCUIElement {
-        let button = app.buttons.matching(
-            NSPredicate(format: "label BEGINSWITH 'Word list'")
-        ).firstMatch
-        if button.exists {
-            return button
+        if app.buttons["word-list-preferences-button"].exists {
+            return app.buttons["word-list-preferences-button"]
         }
+
+        let visibleWordListButton = app.buttons.matching(
+            NSPredicate(format: "label == 'Test' OR label == 'English'")
+        ).firstMatch
+        if visibleWordListButton.exists {
+            return visibleWordListButton
+        }
+
         return app.otherElements.matching(
             NSPredicate(format: "label == 'Word list'")
         ).firstMatch
@@ -179,11 +194,25 @@ final class SolverUITests: XCTestCase {
 
     @MainActor
     private func statusMenuControl(in app: XCUIApplication) -> XCUIElement {
-        let button = app.buttons["More"]
-        if button.exists {
-            return button
+        if app.buttons["secondary-actions-button"].exists {
+            return app.buttons["secondary-actions-button"]
         }
-        return app.otherElements["More"]
+        return app.buttons["More"]
+    }
+
+    @MainActor
+    private func activeWordListLabel(in app: XCUIApplication) -> String? {
+        let control = wordListPreferencesControl(in: app)
+        if let value = control.value as? String, value.isEmpty == false {
+            return value
+        }
+
+        let label = control.label
+        if label == "Test" || label == "English" {
+            return label
+        }
+
+        return nil
     }
 
     @MainActor

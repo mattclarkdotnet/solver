@@ -16,7 +16,7 @@ final class PatternParserTests: XCTestCase {
         XCTAssertFalse(query.allowsPhraseResults)
     }
 
-    func testNormalizesEquivalentWildcardSymbols() {
+    func testNormalizesEquivalentWildcardSymbolsWithinPhraseSegments() {
         let parser = PatternParser()
 
         let result = parser.parse("a.+ b")
@@ -25,7 +25,7 @@ final class PatternParserTests: XCTestCase {
             return XCTFail("Expected a valid query for a.+ b")
         }
 
-        XCTAssertEqual(query.normalizedPattern, "a?*?b")
+        XCTAssertEqual(query.normalizedPattern, "a?*-b")
     }
 
     func testParsesPhraseSegments() {
@@ -35,6 +35,20 @@ final class PatternParserTests: XCTestCase {
 
         guard case .valid(let query) = result else {
             return XCTFail("Expected a valid phrase query")
+        }
+
+        XCTAssertEqual(query.segmentCount, 2)
+        XCTAssertEqual(query.normalizedPattern, "ice-cream")
+        XCTAssertTrue(query.allowsPhraseResults)
+    }
+
+    func testTreatsSpacesAsPhraseSeparators() {
+        let parser = PatternParser()
+
+        let result = parser.parse("ice cream")
+
+        guard case .valid(let query) = result else {
+            return XCTFail("Expected a valid phrase query from spaces")
         }
 
         XCTAssertEqual(query.segmentCount, 2)

@@ -2,6 +2,7 @@ import Foundation
 
 struct AnagramQuery: Hashable, Sendable {
     let letters: String
+    let normalizedInput: String
 
     var signature: String {
         String(letters.sorted())
@@ -20,25 +21,37 @@ enum AnagramQueryState: Equatable, Sendable {
         case .invalid(let message):
             self = .invalid(message: message)
         case .valid(let query):
-            guard query.segments.count == 1 else {
-                self = .invalid(message: "Anagram solving currently supports one word at a time.")
-                return
-            }
-
-            let letters = query.segments[0].tokens.compactMap { token -> Character? in
-                if case .literal(let character) = token {
-                    character
-                } else {
-                    nil
+            let segmentLetters = query.segments.map { segment in
+                let letters = segment.tokens.compactMap { token -> Character? in
+                    if case .literal(let character) = token {
+                        character
+                    } else {
+                        nil
+                    }
                 }
+
+                return letters.count == segment.tokens.count ? letters : []
             }
 
-            guard letters.count == query.segments[0].tokens.count else {
+            guard segmentLetters.allSatisfy({ $0.isEmpty == false }) else {
                 self = .invalid(message: "Anagram solving currently supports letters only, without wildcards.")
                 return
             }
 
-            self = .valid(AnagramQuery(letters: String(letters)))
+            let letters = segmentLetters.flatMap { $0 }
+            guard letters.isEmpty == false else {
+                self = .invalid(message: "Anagram solving currently supports letters only, without wildcards.")
+                return
+            }
+
+            self = .valid(
+                AnagramQuery(
+                    letters: String(letters),
+                    normalizedInput: segmentLetters
+                        .map { String($0) }
+                        .joined(separator: " ")
+                )
+            )
         }
     }
 }
@@ -140,7 +153,7 @@ struct AnagramSearchService: Sendable {
         for (index, entry) in entries.enumerated() {
             try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
 
-            if entry.signature == query.signature && entry.text != query.letters {
+            if entry.signature == query.signature && entry.normalizedComparisonText != query.normalizedInput {
                 matches.append(entry)
             }
         }
@@ -168,8 +181,9 @@ enum AnagramSearchError: LocalizedError {
 private struct AnagramEntry: Hashable, Sendable {
     let text: String
     let signature: String
+    let normalizedComparisonText: String
 
-    init?(_ rawValue: String) {
+    nonisolated init?(_ rawValue: String) {
         let normalized = rawValue
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
@@ -178,12 +192,44 @@ private struct AnagramEntry: Hashable, Sendable {
             return nil
         }
 
-        let scalars = normalized.unicodeScalars
-        guard scalars.allSatisfy(CharacterSet.letters.contains) else {
+        let hyphen = UnicodeScalar("-")
+        let space = UnicodeScalar(" ")
+
+        var normalizedComparisonScalars: [UnicodeScalar] = []
+        var previousScalarWasSeparator = false
+
+        for scalar in normalized.unicodeScalars {
+            if CharacterSet.letters.contains(scalar) {
+                normalizedComparisonScalars.append(scalar)
+                previousScalarWasSeparator = false
+                continue
+            }
+
+            guard CharacterSet.whitespaces.contains(scalar) || scalar == hyphen else {
+                return nil
+            }
+
+            guard previousScalarWasSeparator == false, normalizedComparisonScalars.isEmpty == false else {
+                continue
+            }
+
+            normalizedComparisonScalars.append(space)
+            previousScalarWasSeparator = true
+        }
+
+        if normalizedComparisonScalars.last == space {
+            normalizedComparisonScalars.removeLast()
+        }
+
+        let normalizedComparisonText = String(normalizedComparisonScalars.map(Character.init))
+        let lettersOnly = normalizedComparisonText.filter(\.isLetter)
+
+        guard lettersOnly.isEmpty == false else {
             return nil
         }
 
         self.text = normalized
-        self.signature = String(normalized.sorted())
+        self.signature = String(lettersOnly.sorted())
+        self.normalizedComparisonText = normalizedComparisonText
     }
 }

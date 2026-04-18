@@ -1,31 +1,29 @@
 # Plan
 
 ## Roadmap alignment
-- This plan delivers the current `ROADMAP.md` `Now` item by replacing the current top word-list control area with a bottom status bar that exposes the active word-list choice and a hamburger menu for secondary app actions.
+- This plan delivers the current `ROADMAP.md` `Now` item by adding a reusable solution-details overlay that can surface bundled definition and thesaurus data from the currently selected word-list group.
 
 ## Objective
-- Ship a bottom status bar that keeps the current word-list choice visible and tappable while adding a compact hamburger menu with `Preferences`, `Help`, and `About`, without disturbing the active solver workflow.
+- Ship a results-overlay slice where long-pressing a visible solution, and hovering it when pointer hover is available, presents an in-app overlay showing that solution's bundled definition and thesaurus entries without leaving the active tool.
 
 ## Assumptions
-- The bottom status bar should be app-level chrome that stays visible while the active tool content scrolls.
-- The visible word-list choice in the status bar should remain directly tappable so users can switch lists without leaving the current tool.
-- The hamburger menu is part of the same bottom bar and should expose `Preferences`, `Help`, and `About` as secondary actions only; it should not read like another solver tool.
-- `Preferences` should reuse or extend the existing in-app preferences direction rather than bouncing the user into iOS Settings.
-- `Help` and `About` can be lightweight in-app surfaces for this slice; they do not need to become full standalone features unless the implementation naturally requires it.
+- This slice applies to visible solution rows from the search tools that already render through the shared word-results list, not to the existing definitions or thesaurus lookup screens.
+- The overlay should read from the currently selected bundled word-list group only, and missing bundled details should be presented clearly rather than falling back to network access.
+- Long press is the primary touch interaction; hover behavior should use the same overlay content when pointer hover is available, without introducing a separate desktop-only interaction model.
+- The active tool, current query, and live search results should remain in place behind the overlay.
 
 ## Scenario mapping
-- `See the active word list at a glance`: GIVEN the user is using any implemented solver tool, WHEN the screen is visible, THEN the bottom status bar shows the currently selected bundled word list.
-- `Change word lists from the bottom bar`: GIVEN the user is in an implemented tool, WHEN they tap the displayed word-list choice in the bottom status bar, THEN they can switch groups without leaving the current tool.
-- `Open the hamburger menu`: GIVEN the user is on any implemented screen, WHEN they tap the hamburger control in the bottom status bar, THEN they can access `Preferences`, `Help`, and `About`.
-- `Keep active-tool context while using secondary chrome`: GIVEN the user opens the word-list control or hamburger menu, WHEN they dismiss it or choose a secondary action, THEN the current solver tool and shared input remain coherent.
-- `Offline operation`: GIVEN the device has no network connectivity, WHEN the user interacts with the bottom status bar, THEN the app behaves normally using only local UI and bundled data.
+- `Open solution details from a result row`: GIVEN the user sees a solution in crossword, anagram, or Scrabble results, WHEN they long press that solution or hover it where hover is available, THEN an overlay appears with the bundled definition and thesaurus details for that solution.
+- `Handle missing bundled details clearly`: GIVEN the user opens the overlay for a solution that has no bundled definition or no bundled thesaurus entry, WHEN the overlay loads, THEN the overlay explains the missing local detail without failing the whole interaction.
+- `Keep the current solving context intact`: GIVEN the user opens and dismisses a solution-details overlay, WHEN they return to the active tool, THEN the current tool, query, and visible results remain unchanged.
+- `Keep solution details group-aware and offline`: GIVEN the user switches bundled word-list groups, WHEN they open a solution-details overlay, THEN the shown definition and thesaurus data come only from the selected bundled group and no online fallback is attempted.
 
 ## Exit criteria
-- Replace the current top word-list control with a bottom status bar that remains visible as app-level chrome.
-- Show the active word-list choice in that bottom bar and keep it directly tappable for in-place switching.
-- Add a hamburger menu to the same bottom bar with `Preferences`, `Help`, and `About`.
-- Keep the current solver tool selected and the shared input state intact while interacting with the bottom bar.
-- Update automated tests and the documentation set to cover the new status-bar layout, the moved word-list control, and the hamburger-menu actions.
+- Add a reusable solution-details overlay for shared search-result rows, driven by the currently selected bundled definition and thesaurus data.
+- Support long-press presentation on touch devices and hover-triggered presentation where pointer hover is available, without changing the underlying search workflows.
+- Keep missing local definition or thesaurus data explicit inside the overlay rather than surfacing a generic failure.
+- Preserve the existing live-search flows, selected tool, selected word-list group, and offline-only behavior.
+- Add or update tests and synced documentation for opening solution details from results and resolving bundled overlay content.
 
 ## Promotion rule
-- Promote this plan when the bottom status bar replaces the current word-list control, the active word list is visible and tappable there, the hamburger menu exposes `Preferences`, `Help`, and `About` without disrupting the active tool, and the behavior is verified and documented, then move that roadmap item to `Completed` and replace `PLAN.md` with a new plan for the next `Later` item.
+- Promote this plan when visible solutions can open a bundled details overlay through long press and pointer hover, the active solving context stays intact after dismissal, missing local details are handled clearly, the behavior is verified offline with tests, and the docs are updated, then move that roadmap item to `Completed` and replace `PLAN.md` for the next `Later` item.

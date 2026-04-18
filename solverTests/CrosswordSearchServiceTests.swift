@@ -20,6 +20,24 @@ final class CrosswordSearchServiceTests: XCTestCase {
         XCTAssertEqual(matches.map(\.displayText), ["Ice Cream"])
     }
 
+    func testMatchesSpaceSeparatedPhrasePatternAgainstInjectedEntries() async throws {
+        let service = CrosswordSearchService(entries: ["ice cream", "cross word", "cream"])
+        let query = try XCTUnwrap(PatternParser().parse("ice cream").query)
+
+        let matches = try await service.search(query)
+
+        XCTAssertEqual(matches.map(\.displayText), ["Ice Cream"])
+    }
+
+    func testMatchesHyphenSeparatedWildcardPhraseAgainstInjectedEntries() async throws {
+        let service = CrosswordSearchService(entries: ["pancho villa", "poncho villa", "pancho valley"])
+        let query = try XCTUnwrap(PatternParser().parse("p?????-v????").query)
+
+        let matches = try await service.search(query)
+
+        XCTAssertTrue(matches.map(\.displayText).contains("Pancho Villa"))
+    }
+
     func testReturnsNoMatchesWhenPatternIsTooSpecific() async throws {
         let service = CrosswordSearchService(entries: ["cat", "cot"])
         let query = try XCTUnwrap(PatternParser().parse("czz").query)

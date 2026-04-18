@@ -53,6 +53,8 @@ One entry per line.
 - multi-word entries may use spaces or hyphens
 - blank lines are ignored
 - entries that do not parse into alphabetic segments are ignored
+- the crossword tool treats spaces and `-` in user input as word separators, so multi-word entries are matched segment-by-segment against phrase patterns
+- the anagram tool also consumes this file, comparing multi-word entries by letters only while preserving stored spacing in visible results
 
 Examples:
 
@@ -114,6 +116,7 @@ word game|WURD gaym|A game built around spelling.
 Used by:
 
 - definitions lookup
+- shared solution-details overlays
 
 ### `thesaurus.txt`
 
@@ -141,11 +144,14 @@ word game|letter game, spelling game
 Used by:
 
 - thesaurus lookup
+- shared solution-details overlays
 
 ## Behavioral notes
 
 - The selected bundled group is app-wide.
 - Crossword, anagram, Scrabble, definitions, and thesaurus all resolve data from the same active group.
+- Shared result-row solution-details overlays also resolve their definition and thesaurus content from that same active group.
+- The test group shares a common single-word vocabulary across the implemented tools, and the crossword list may also include extra phrase entries used for crossword and anagram phrase coverage.
 - Solver is offline-only, so all shipped word-list data must be bundled with the app.
 
 ## Packaging note

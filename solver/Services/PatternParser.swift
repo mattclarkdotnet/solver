@@ -4,28 +4,35 @@ struct PatternParser: Sendable {
     nonisolated init() {}
 
     func parse(_ input: String) -> PatternQueryState {
-        guard input.isEmpty == false else {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedInput.isEmpty == false else {
             return .empty
         }
 
         var segments: [PatternSegment] = []
         var tokens: [PatternToken] = []
 
-        for character in input.lowercased() {
+        for character in trimmedInput.lowercased() {
             switch character {
             case "a"..."z":
                 tokens.append(.literal(character))
-            case "?", ".", " ":
-                // The README treats these three symbols as equivalent single-letter wildcards.
+            case "?", ".":
+                // Both symbols represent one unknown letter in the current crossword syntax.
                 tokens.append(.singleWildcard)
             case "+", "*":
                 // Both symbols represent an unknown run, so the parser normalizes them to one token kind.
                 tokens.append(.multiWildcard)
-            case "-":
+            case "-", " ":
                 guard tokens.isEmpty == false else {
-                    return .invalid(message: "Use letters or wildcards between word breaks.")
+                    if character == "-", segments.isEmpty {
+                        return .invalid(message: "Use letters or wildcards between word breaks.")
+                    }
+
+                    // Treat repeated separators inside a phrase as one visible word break.
+                    continue
                 }
 
+                // Spaces and hyphens both mark a word break for crossword phrase patterns.
                 segments.append(PatternSegment(tokens: tokens))
                 tokens.removeAll(keepingCapacity: true)
             default:
