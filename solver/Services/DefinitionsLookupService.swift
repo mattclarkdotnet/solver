@@ -42,37 +42,37 @@ struct DefinitionEntry: Hashable, Sendable {
 }
 
 struct DefinitionsLookupService: Sendable {
-    private let entryLoader: @Sendable () throws -> [DefinitionEntry]
+    private let entries: [DefinitionEntry]?
+    private let loadingError: Error?
 
     init(
         bundle: Bundle = .main,
         resourceName: String = "definitions",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        let cachedEntries = Result {
-            try Self.loadEntries(
+        do {
+            self.entries = try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
+            self.loadingError = nil
+        } catch {
+            self.entries = nil
+            self.loadingError = error
         }
     }
 
     init(entries: [String]) {
         let parsedEntries = try? entries.compactMap(Self.parseEntry)
-        let cachedEntries = Result {
-            guard let parsedEntries, parsedEntries.isEmpty == false else {
-                throw DefinitionsLookupError.emptyDefinitionsList
-            }
+        guard let parsedEntries, parsedEntries.isEmpty == false else {
+            self.entries = nil
+            self.loadingError = DefinitionsLookupError.emptyDefinitionsList
+            return
+        }
 
-            return parsedEntries
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
-        }
+        self.entries = parsedEntries
+        self.loadingError = nil
     }
 
     func lookup(_ query: DefinitionLookupQuery) async throws -> DefinitionEntry? {
@@ -84,7 +84,15 @@ struct DefinitionsLookupService: Sendable {
     }
 
     private func loadEntries() throws -> [DefinitionEntry] {
-        try entryLoader()
+        if let loadingError {
+            throw loadingError
+        }
+
+        guard let entries else {
+            throw DefinitionsLookupError.missingDefinitionsList
+        }
+
+        return entries
     }
 
     private static func loadEntries(

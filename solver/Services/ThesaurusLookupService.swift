@@ -44,37 +44,37 @@ struct ThesaurusEntry: Hashable, Sendable {
 }
 
 struct ThesaurusLookupService: Sendable {
-    private let entryLoader: @Sendable () throws -> [ThesaurusEntry]
+    private let entries: [ThesaurusEntry]?
+    private let loadingError: Error?
 
     init(
         bundle: Bundle = .main,
         resourceName: String = "thesaurus",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        let cachedEntries = Result {
-            try Self.loadEntries(
+        do {
+            self.entries = try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
+            self.loadingError = nil
+        } catch {
+            self.entries = nil
+            self.loadingError = error
         }
     }
 
     init(entries: [String]) {
         let parsedEntries = try? entries.map(Self.parseEntry)
-        let cachedEntries = Result {
-            guard let parsedEntries, parsedEntries.isEmpty == false else {
-                throw ThesaurusLookupError.emptyThesaurusList
-            }
+        guard let parsedEntries, parsedEntries.isEmpty == false else {
+            self.entries = nil
+            self.loadingError = ThesaurusLookupError.emptyThesaurusList
+            return
+        }
 
-            return parsedEntries
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
-        }
+        self.entries = parsedEntries
+        self.loadingError = nil
     }
 
     func lookup(_ query: ThesaurusLookupQuery) async throws -> ThesaurusEntry? {
@@ -86,7 +86,15 @@ struct ThesaurusLookupService: Sendable {
     }
 
     private func loadEntries() throws -> [ThesaurusEntry] {
-        try entryLoader()
+        if let loadingError {
+            throw loadingError
+        }
+
+        guard let entries else {
+            throw ThesaurusLookupError.missingThesaurusList
+        }
+
+        return entries
     }
 
     private static func loadEntries(

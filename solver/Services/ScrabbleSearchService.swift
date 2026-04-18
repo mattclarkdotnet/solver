@@ -195,37 +195,37 @@ struct ScrabbleMatch: Identifiable, Hashable, Sendable {
 }
 
 struct ScrabbleSearchService: Sendable {
-    private let entryLoader: @Sendable () throws -> [ScrabbleEntry]
+    private let entries: [ScrabbleEntry]?
+    private let loadingError: Error?
 
     init(
         bundle: Bundle = .main,
         resourceName: String = "scrabble_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        let cachedEntries = Result {
-            try Self.loadEntries(
+        do {
+            self.entries = try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
+            self.loadingError = nil
+        } catch {
+            self.entries = nil
+            self.loadingError = error
         }
     }
 
     init(entries: [String]) {
         let parsedEntries = entries.compactMap(ScrabbleEntry.init)
-        let cachedEntries = Result {
-            guard parsedEntries.isEmpty == false else {
-                throw ScrabbleSearchError.emptyWordList
-            }
+        guard parsedEntries.isEmpty == false else {
+            self.entries = nil
+            self.loadingError = ScrabbleSearchError.emptyWordList
+            return
+        }
 
-            return parsedEntries
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
-        }
+        self.entries = parsedEntries
+        self.loadingError = nil
     }
 
     func search(_ query: ScrabbleQuery) async throws -> [ScrabbleMatch] {
@@ -246,7 +246,15 @@ struct ScrabbleSearchService: Sendable {
     }
 
     private func loadEntries() throws -> [ScrabbleEntry] {
-        try entryLoader()
+        if let loadingError {
+            throw loadingError
+        }
+
+        guard let entries else {
+            throw ScrabbleSearchError.missingWordList
+        }
+
+        return entries
     }
 
     private func canFormWord(_ entry: ScrabbleEntry, from query: ScrabbleQuery) -> Bool {

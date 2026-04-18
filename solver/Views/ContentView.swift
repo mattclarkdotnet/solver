@@ -1,28 +1,71 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var session = SolverSession()
+    @StateObject private var session: SolverSession
+    @State private var services: SolverServices
+
+    init() {
+        let session = SolverSession()
+        _session = StateObject(wrappedValue: session)
+        _services = State(initialValue: SolverServices(wordListGroup: session.selectedWordListGroup))
+    }
 
     var body: some View {
-        SolverHomeView(session: session)
+        SolverHomeView(
+            session: session,
+            wordListGroup: services.wordListGroup,
+            crosswordService: services.crosswordService,
+            scrabbleService: services.scrabbleService,
+            anagramService: services.anagramService,
+            definitionsService: services.definitionsService,
+            thesaurusService: services.thesaurusService
+        )
+        .onChange(of: session.selectedWordListGroup) { _, newValue in
+            services = SolverServices(wordListGroup: newValue)
+        }
     }
 }
 
 private struct SolverHomeView: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
+    let crosswordService: CrosswordSearchService
+    let scrabbleService: ScrabbleSearchService
+    let anagramService: AnagramSearchService
+    let definitionsService: DefinitionsLookupService
+    let thesaurusService: ThesaurusLookupService
 
     var body: some View {
         ToolTabs(
             session: session,
-            crosswordService: CrosswordSearchService(wordListGroup: session.selectedWordListGroup),
-            scrabbleService: ScrabbleSearchService(wordListGroup: session.selectedWordListGroup),
-            anagramService: AnagramSearchService(wordListGroup: session.selectedWordListGroup),
-            definitionsService: DefinitionsLookupService(wordListGroup: session.selectedWordListGroup),
-            thesaurusService: ThesaurusLookupService(wordListGroup: session.selectedWordListGroup)
+            wordListGroup: wordListGroup,
+            crosswordService: crosswordService,
+            scrabbleService: scrabbleService,
+            anagramService: anagramService,
+            definitionsService: definitionsService,
+            thesaurusService: thesaurusService
         )
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
         .background(Color(.systemGroupedBackground))
+    }
+}
+
+private struct SolverServices {
+    let wordListGroup: WordListGroup
+    let crosswordService: CrosswordSearchService
+    let scrabbleService: ScrabbleSearchService
+    let anagramService: AnagramSearchService
+    let definitionsService: DefinitionsLookupService
+    let thesaurusService: ThesaurusLookupService
+
+    init(wordListGroup: WordListGroup) {
+        self.wordListGroup = wordListGroup
+        self.crosswordService = CrosswordSearchService(wordListGroup: wordListGroup)
+        self.scrabbleService = ScrabbleSearchService(wordListGroup: wordListGroup)
+        self.anagramService = AnagramSearchService(wordListGroup: wordListGroup)
+        self.definitionsService = DefinitionsLookupService(wordListGroup: wordListGroup)
+        self.thesaurusService = ThesaurusLookupService(wordListGroup: wordListGroup)
     }
 }
 
@@ -70,6 +113,7 @@ private struct PatternEntryField: View {
 
 private struct ToolTabs: View {
     @ObservedObject var session: SolverSession
+    let wordListGroup: WordListGroup
     let crosswordService: CrosswordSearchService
     let scrabbleService: ScrabbleSearchService
     let anagramService: AnagramSearchService
@@ -97,19 +141,19 @@ private struct ToolTabs: View {
         case .crossword:
             CrosswordToolView(
                 session: session,
-                wordListGroup: session.selectedWordListGroup,
+                wordListGroup: wordListGroup,
                 searchService: crosswordService
             )
         case .scrabble:
             ScrabbleToolView(
                 session: session,
-                wordListGroup: session.selectedWordListGroup,
+                wordListGroup: wordListGroup,
                 searchService: scrabbleService
             )
         case .anagramSolver:
             AnagramToolView(
                 session: session,
-                wordListGroup: session.selectedWordListGroup,
+                wordListGroup: wordListGroup,
                 searchService: anagramService
             )
         case .anagramGenerator:
@@ -117,7 +161,7 @@ private struct ToolTabs: View {
         case .definitions:
             DefinitionsToolView(
                 session: session,
-                wordListGroup: session.selectedWordListGroup,
+                wordListGroup: wordListGroup,
                 lookupService: definitionsService
             )
         case .scrabbleChecker:
@@ -125,7 +169,7 @@ private struct ToolTabs: View {
         case .thesaurus:
             ThesaurusToolView(
                 session: session,
-                wordListGroup: session.selectedWordListGroup,
+                wordListGroup: wordListGroup,
                 lookupService: thesaurusService
             )
         }

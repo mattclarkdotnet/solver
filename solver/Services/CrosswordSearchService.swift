@@ -20,22 +20,24 @@ struct CrosswordMatch: Identifiable, Hashable, Sendable {
 }
 
 struct CrosswordSearchService: Sendable {
-    private let wordListLoader: @Sendable () throws -> CrosswordWordList
+    private let wordList: CrosswordWordList?
+    private let loadingError: Error?
 
     init(
         bundle: Bundle = .main,
         resourceName: String = "crossword_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        let cachedWordList = Result {
-            try Self.loadWordList(
+        do {
+            self.wordList = try Self.loadWordList(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
-        }
-        self.wordListLoader = {
-            try cachedWordList.get()
+            self.loadingError = nil
+        } catch {
+            self.wordList = nil
+            self.loadingError = error
         }
     }
 
@@ -44,16 +46,14 @@ struct CrosswordSearchService: Sendable {
         name: String = "Inline test list"
     ) {
         let parsedEntries = entries.compactMap(CrosswordEntry.init)
-        let cachedWordList = Result {
-            guard parsedEntries.isEmpty == false else {
-                throw CrosswordSearchError.emptyWordList
-            }
+        guard parsedEntries.isEmpty == false else {
+            self.wordList = nil
+            self.loadingError = CrosswordSearchError.emptyWordList
+            return
+        }
 
-            return CrosswordWordList(name: name, entries: parsedEntries)
-        }
-        self.wordListLoader = {
-            try cachedWordList.get()
-        }
+        self.wordList = CrosswordWordList(name: name, entries: parsedEntries)
+        self.loadingError = nil
     }
 
     func search(_ query: PatternQuery) async throws -> [CrosswordMatch] {
@@ -80,7 +80,15 @@ struct CrosswordSearchService: Sendable {
     }
 
     private func loadWordList() throws -> CrosswordWordList {
-        try wordListLoader()
+        if let loadingError {
+            throw loadingError
+        }
+
+        guard let wordList else {
+            throw CrosswordSearchError.missingWordList
+        }
+
+        return wordList
     }
 
     private static func loadWordList(

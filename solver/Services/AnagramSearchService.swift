@@ -51,37 +51,37 @@ struct AnagramMatch: Identifiable, Hashable, Sendable {
 }
 
 struct AnagramSearchService: Sendable {
-    private let entryLoader: @Sendable () throws -> [AnagramEntry]
+    private let entries: [AnagramEntry]?
+    private let loadingError: Error?
 
     init(
         bundle: Bundle = .main,
         resourceName: String = "crossword_words",
         wordListGroup: WordListGroup = .defaultGroup
     ) {
-        let cachedEntries = Result {
-            try Self.loadEntries(
+        do {
+            self.entries = try Self.loadEntries(
                 bundle: bundle,
                 resourceName: resourceName,
                 wordListGroup: wordListGroup
             )
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
+            self.loadingError = nil
+        } catch {
+            self.entries = nil
+            self.loadingError = error
         }
     }
 
     init(entries: [String]) {
         let parsedEntries = entries.compactMap(AnagramEntry.init)
-        let cachedEntries = Result {
-            guard parsedEntries.isEmpty == false else {
-                throw AnagramSearchError.emptyWordList
-            }
+        guard parsedEntries.isEmpty == false else {
+            self.entries = nil
+            self.loadingError = AnagramSearchError.emptyWordList
+            return
+        }
 
-            return parsedEntries
-        }
-        self.entryLoader = {
-            try cachedEntries.get()
-        }
+        self.entries = parsedEntries
+        self.loadingError = nil
     }
 
     func search(_ query: AnagramQuery) async throws -> [AnagramMatch] {
@@ -96,7 +96,15 @@ struct AnagramSearchService: Sendable {
     }
 
     private func loadEntries() throws -> [AnagramEntry] {
-        try entryLoader()
+        if let loadingError {
+            throw loadingError
+        }
+
+        guard let entries else {
+            throw AnagramSearchError.missingWordList
+        }
+
+        return entries
     }
 
     private static func loadEntries(

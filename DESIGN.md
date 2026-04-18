@@ -20,7 +20,8 @@
 - Solver now also ships a separate bundled `English` word-list group under `solver/Resources/wordlists/English/`, giving the app one realistic starter group alongside the deterministic `test` group.
 - The current test crossword, Scrabble, definitions, and thesaurus resources all share the same underlying vocabulary, while definitions and thesaurus preserve their own per-word metadata formats on top of that shared word set.
 - Resource loading resolves the selected bundled word-list group first and falls back to the bundle root so the app stays robust while the current Xcode synchronized-folder packaging still flattens those files into the app bundle root.
-- Each word-based service parses its selected bundled resource once when the service is created and reuses the cached in-memory entries for subsequent searches or lookups.
+- Each word-based service now stores its parsed bundled entries directly, rather than hiding loading behind closure-based indirection.
+- `ContentView` keeps a stable set of service instances for the active word-list group and only rebuilds them when the selected group changes, so typing into the shared input field does not recreate the services or reload bundled data.
 - The UI keeps the multi-tool shell in place with a custom horizontally scrollable tool selector that is pinned to the top safe area, so all tools stay directly reachable on compact devices without falling back to a `More` overflow path or being pushed off-screen by tool scrolling.
 - Word-list selection is an app-wide in-app preference exposed as a compact secondary menu beside the tool selector, so the user can switch bundled groups without leaving the current solver tool or confusing the choice with the main text-entry workflow.
 - The app shell intentionally avoids a visible top-level `Solver` title header so the first visible content is the active tool workflow rather than repeated app chrome.

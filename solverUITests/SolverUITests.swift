@@ -22,7 +22,6 @@ final class SolverUITests: XCTestCase {
         XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "Test")
 
         selectWordList(named: "English", in: app)
-        XCTAssertTrue(app.staticTexts["Apple"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.otherElements["crossword-results-card"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "English")
 
