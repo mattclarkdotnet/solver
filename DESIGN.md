@@ -25,7 +25,8 @@
 - Live search now runs through cancellable background tasks for the implemented tools, so fresh input can interrupt in-flight work and only the latest query is allowed to publish visible state.
 - The word-based services perform cooperative cancellation checks while scanning local entries, which keeps the execution model explicit and avoids stale results after rapid typing or word-list changes.
 - The UI keeps the multi-tool shell in place with a custom horizontally scrollable tool selector that is pinned to the top safe area, so all tools stay directly reachable on compact devices without falling back to a `More` overflow path or being pushed off-screen by tool scrolling.
-- Word-list selection is an app-wide in-app preference exposed as a compact secondary menu beside the tool selector, so the user can switch bundled groups without leaving the current solver tool or confusing the choice with the main text-entry workflow.
+- The app now uses a persistent bottom status bar for secondary chrome, keeping the active bundled word-list choice visible and tappable without taking space away from the shared input area.
+- The bottom status bar also exposes a compact hamburger-style `More` action that opens lightweight in-app `Preferences`, `Help`, and `About` surfaces without changing the active tool.
 - The app shell intentionally avoids a visible top-level `Solver` title header so the first visible content is the active tool workflow rather than repeated app chrome.
 - The shared main input field uses a visible rounded border so it reads as the primary editing surface across implemented tools, with a stronger accent outline while focused; Scrabble helper fields keep their lighter secondary styling.
 - The crossword, anagram, Scrabble, definitions, and thesaurus tabs each drive their results area from a small view-level state machine so empty input, invalid patterns, loading, no-match states, and successful offline matches are all explicit and testable.

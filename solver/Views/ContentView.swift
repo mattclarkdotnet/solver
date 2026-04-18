@@ -35,6 +35,8 @@ private struct SolverHomeView: View {
     let definitionsService: DefinitionsLookupService
     let thesaurusService: ThesaurusLookupService
 
+    @State private var presentedSheet: SolverSecondarySheet?
+
     var body: some View {
         ToolTabs(
             session: session,
@@ -46,8 +48,21 @@ private struct SolverHomeView: View {
             thesaurusService: thesaurusService
         )
         .padding(.horizontal, 20)
-        .padding(.bottom, 12)
+        .padding(.top, 12)
         .background(Color(.systemGroupedBackground))
+        // Secondary app chrome lives in a bottom inset so tool content can scroll independently.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            BottomStatusBar(
+                session: session,
+                onPresentSheet: { presentedSheet = $0 }
+            )
+        }
+        .sheet(item: $presentedSheet) { sheet in
+            SolverSecondarySheetView(
+                sheet: sheet,
+                session: session
+            )
+        }
     }
 }
 
@@ -122,12 +137,8 @@ private struct ToolTabs: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Keep the selector and preferences control outside the tool scroll views so they stay reachable while tool content scrolls.
-            HStack(alignment: .top, spacing: 12) {
-                ToolSelector(selectedTool: $session.selectedTool)
-                    .frame(maxWidth: .infinity)
-                WordListPreferencesMenu(session: session)
-            }
+            // Keep the selector outside the tool scroll views so it stays reachable while tool content scrolls.
+            ToolSelector(selectedTool: $session.selectedTool)
             selectedToolContent
             Spacer(minLength: 0)
         }
@@ -248,46 +259,301 @@ private struct ToolSelector: View {
     }
 }
 
-private struct WordListPreferencesMenu: View {
+private struct BottomStatusBar: View {
+    @ObservedObject var session: SolverSession
+    let onPresentSheet: (SolverSecondarySheet) -> Void
+
+    @State private var isWordListDialogPresented = false
+    @State private var isSecondaryMenuPresented = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            WordListStatusButton(
+                session: session,
+                isPresented: $isWordListDialogPresented
+            )
+            Spacer(minLength: 0)
+            SecondaryActionsButton(isPresented: $isSecondaryMenuPresented)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background(
+            Rectangle()
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 8, y: -2)
+        )
+        .overlay(alignment: .top) {
+            Divider()
+        }
+        .accessibilityIdentifier("bottom-status-bar")
+        .confirmationDialog(
+            "Word list",
+            isPresented: $isWordListDialogPresented,
+            titleVisibility: .visible
+        ) {
+            ForEach(WordListGroup.allCases) { group in
+                Button(group.title) {
+                    session.selectedWordListGroup = group
+                }
+            }
+        } message: {
+            Text("Choose the bundled word-list group Solver should use across the implemented tools.")
+        }
+        .confirmationDialog(
+            "More",
+            isPresented: $isSecondaryMenuPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Preferences") {
+                onPresentSheet(.preferences)
+            }
+
+            Button("Help") {
+                onPresentSheet(.help)
+            }
+
+            Button("About") {
+                onPresentSheet(.about)
+            }
+        }
+    }
+}
+
+private struct WordListStatusButton: View {
+    @ObservedObject var session: SolverSession
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Group {
+            Button {
+                isPresented = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "text.book.closed")
+                        .font(.footnote.weight(.semibold))
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Word list")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        Text(session.selectedWordListGroup.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color(.separator).opacity(0.35))
+                )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Word list")
+        .accessibilityValue(session.selectedWordListGroup.title)
+        .accessibilityHint("Shows the active bundled word list and lets you switch it.")
+        .accessibilityIdentifier("word-list-preferences-button")
+    }
+}
+
+private struct SecondaryActionsButton: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Group {
+            Button {
+                isPresented = true
+            } label: {
+                Label("More", systemImage: "line.3.horizontal")
+                    .labelStyle(.iconOnly)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color(.separator).opacity(0.35))
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("More")
+        .accessibilityHint("Open preferences, help, and about.")
+    }
+}
+
+private enum SolverSecondarySheet: String, Identifiable {
+    case preferences
+    case help
+    case about
+
+    var id: String { rawValue }
+}
+
+private struct SolverSecondarySheetView: View {
+    let sheet: SolverSecondarySheet
+    @ObservedObject var session: SolverSession
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    content
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+            }
+            .navigationTitle(title)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch sheet {
+        case .preferences:
+            PreferencesSheetContent(session: session)
+        case .help:
+            HelpSheetContent()
+        case .about:
+            AboutSheetContent()
+        }
+    }
+
+    private var title: String {
+        switch sheet {
+        case .preferences:
+            "Preferences"
+        case .help:
+            "Help"
+        case .about:
+            "About"
+        }
+    }
+}
+
+private struct PreferencesSheetContent: View {
     @ObservedObject var session: SolverSession
 
     var body: some View {
-        Menu {
-            Section("Word list") {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Choose the bundled word-list group Solver should use across the implemented tools.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 12) {
                 ForEach(WordListGroup.allCases) { group in
                     Button {
                         session.selectedWordListGroup = group
                     } label: {
-                        if session.selectedWordListGroup == group {
-                            Label(group.title, systemImage: "checkmark")
-                        } else {
-                            Text(group.title)
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(group.title)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(group.sourceDescription)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer(minLength: 0)
+
+                            if session.selectedWordListGroup == group {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.accentColor)
+                            }
                         }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(
+                                    session.selectedWordListGroup == group
+                                        ? Color.accentColor : Color(.separator).opacity(0.35),
+                                    lineWidth: session.selectedWordListGroup == group ? 2 : 1
+                                )
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
             }
-
-            Section {
-                Text(session.selectedWordListGroup.sourceDescription)
-            }
-        } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle()
-                        .fill(Color(.secondarySystemBackground))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color(.separator).opacity(0.3))
-                )
         }
-        .accessibilityIdentifier("word-list-preferences-button")
-        .accessibilityLabel("Word list preferences")
-        .accessibilityValue(session.selectedWordListGroup.title)
-        .accessibilityHint("Choose the active bundled word list group.")
+    }
+}
+
+private struct HelpSheetContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            helpSection(
+                title: "Crossword",
+                body: "Use letters to lock positions, `?` or `.` for one unknown letter, `*` or `+` for a run of letters, and `-` to split words."
+            )
+            helpSection(
+                title: "Scrabble",
+                body: "Use the main field for rack letters, `?` for blanks, and the extra fields for letters already on the board."
+            )
+            helpSection(
+                title: "Definitions and Thesaurus",
+                body: "Enter literal words or phrases only. These tools do not support wildcard or rack-style input."
+            )
+        }
+    }
+
+    private func helpSection(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+            Text(body)
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct AboutSheetContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Solver")
+                .font(.title2.weight(.semibold))
+
+            Text("Solver is an offline word-game helper for crossword patterns, Scrabble racks, anagrams, definitions, and thesaurus lookup.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+
+            Text("All implemented searches and lookups run locally from bundled word lists on this device.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

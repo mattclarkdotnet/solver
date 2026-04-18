@@ -12,6 +12,8 @@ final class SolverUITests: XCTestCase {
         app.launch()
 
         assertNoSolverHeader(in: app)
+        XCTAssertTrue(wordListPreferencesControl(in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(statusMenuControl(in: app).waitForExistence(timeout: 5))
 
         let patternField = app.textFields["pattern-field"]
         XCTAssertTrue(patternField.waitForExistence(timeout: 5))
@@ -19,15 +21,18 @@ final class SolverUITests: XCTestCase {
 
         replaceText(in: patternField, from: "", to: "apple")
         XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "Test")
+        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("Test"))
 
         selectWordList(named: "English", in: app)
         XCTAssertTrue(app.otherElements["crossword-results-card"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "English")
+        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("English"))
 
         selectWordList(named: "Test", in: app)
         XCTAssertTrue(app.staticTexts["No matches for apple"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["word-list-preferences-button"].value as? String, "Test")
+        XCTAssertTrue(wordListPreferencesControl(in: app).label.contains("Test"))
+        openSecondarySheet(named: "About", in: app)
+        XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 5))
+        app.buttons["Done"].tap()
 
         replaceText(in: patternField, from: "apple", to: "c?t")
         XCTAssertTrue(app.staticTexts["Cat"].waitForExistence(timeout: 5))
@@ -133,9 +138,20 @@ final class SolverUITests: XCTestCase {
 
     @MainActor
     private func selectWordList(named name: String, in app: XCUIApplication) {
-        let preferencesButton = app.buttons["word-list-preferences-button"]
+        let preferencesButton = wordListPreferencesControl(in: app)
         XCTAssertTrue(preferencesButton.waitForExistence(timeout: 5))
         preferencesButton.tap()
+
+        let option = app.buttons[name]
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
+    }
+
+    @MainActor
+    private func openSecondarySheet(named name: String, in app: XCUIApplication) {
+        let menuButton = statusMenuControl(in: app)
+        XCTAssertTrue(menuButton.waitForExistence(timeout: 5))
+        menuButton.tap()
 
         let option = app.buttons[name]
         XCTAssertTrue(option.waitForExistence(timeout: 5))
@@ -146,6 +162,28 @@ final class SolverUITests: XCTestCase {
     private func assertNoSolverHeader(in app: XCUIApplication) {
         XCTAssertFalse(app.navigationBars["Solver"].exists)
         XCTAssertFalse(app.staticTexts["Solver"].exists)
+    }
+
+    @MainActor
+    private func wordListPreferencesControl(in app: XCUIApplication) -> XCUIElement {
+        let button = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH 'Word list'")
+        ).firstMatch
+        if button.exists {
+            return button
+        }
+        return app.otherElements.matching(
+            NSPredicate(format: "label == 'Word list'")
+        ).firstMatch
+    }
+
+    @MainActor
+    private func statusMenuControl(in app: XCUIApplication) -> XCUIElement {
+        let button = app.buttons["More"]
+        if button.exists {
+            return button
+        }
+        return app.otherElements["More"]
     }
 
     @MainActor
