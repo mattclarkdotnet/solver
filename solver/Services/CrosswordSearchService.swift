@@ -57,22 +57,11 @@ struct CrosswordSearchService: Sendable {
     }
 
     func search(_ query: PatternQuery) async throws -> [CrosswordMatch] {
-        await Task.yield()
-
         let wordList = try loadWordList()
 
-        return wordList.entries
-            .filter { entry in
-                PatternMatcher.matches(query: query, candidateSegments: entry.segments)
-            }
-            .sorted { lhs, rhs in
-                if lhs.segments.count == rhs.segments.count {
-                    return lhs.text < rhs.text
-                }
-
-                return lhs.segments.count < rhs.segments.count
-            }
-            .map(CrosswordMatch.init(entry:))
+        return try await CancellableSearchExecution.run {
+            try Self.resolveMatches(for: query, in: wordList)
+        }
     }
 
     func wordListName() throws -> String {
@@ -117,6 +106,32 @@ struct CrosswordSearchService: Sendable {
         }
 
         return CrosswordWordList(name: "Bundled \(wordListGroup.title) list", entries: entries)
+    }
+
+    private static func resolveMatches(
+        for query: PatternQuery,
+        in wordList: CrosswordWordList
+    ) throws -> [CrosswordMatch] {
+        var matches: [CrosswordEntry] = []
+        matches.reserveCapacity(min(wordList.entries.count, 256))
+
+        for (index, entry) in wordList.entries.enumerated() {
+            try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
+
+            if PatternMatcher.matches(query: query, candidateSegments: entry.segments) {
+                matches.append(entry)
+            }
+        }
+
+        return matches
+            .sorted { lhs, rhs in
+                if lhs.segments.count == rhs.segments.count {
+                    return lhs.text < rhs.text
+                }
+
+                return lhs.segments.count < rhs.segments.count
+            }
+            .map(CrosswordMatch.init(entry:))
     }
 }
 

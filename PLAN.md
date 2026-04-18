@@ -1,34 +1,31 @@
 # Plan
 
 ## Roadmap alignment
-- This plan delivers the current `ROADMAP.md` `Now` item by adding a real bundled English word-list group and the first user preference for choosing between the existing `test` group and the new `English` group.
+- This plan delivers the current `ROADMAP.md` `Now` item by making live search cancellable so fresh input can interrupt work that is already running.
 
 ## Objective
-- Ship offline word-list-group selection so the implemented tools can load either the existing bundled `test` group or a new bundled `English` group based on one shared user preference.
+- Ship a live-search execution model where typing remains responsive, each new query starts a fresh search task, and any superseded search is cancelled before it can block the user or publish stale results.
 
 ## Assumptions
-- This slice should add one new bundled word-list group named `English`; it should not introduce downloadable data, user-imported files, or broader word-list management yet.
-- The existing `test` group remains available for deterministic development and test coverage, while the new `English` group is the first more realistic bundled option for end-user solving.
-- The group preference should be app-wide for the implemented word-based tools, so crossword, anagram, Scrabble, definitions, and thesaurus all resolve their bundled data from the same selected group.
-- The word-list-group preference should live in an in-app preferences surface that is separate from the tool selector, so the user can change groups without leaving the current tool.
-- That preferences surface should stay visually secondary to the solver workflow: it must not consume enough space to compete with the main inputs or read like another search or entry field.
-- If a richer `English` dataset is not available for one tool, the UI should continue to behave coherently offline and the gap should be handled explicitly in code and tests rather than silently falling back to a different group.
+- This slice is about execution behavior, not search quality: the matching rules and visible result ordering should stay the same unless cancellation requires removing a stale-state edge case.
+- The implemented live-search tools should all follow the same model once the pattern is proven, even if crossword is used as the first concrete refactor target.
+- A cancelled search should quietly disappear; the UI should only show results or failures from the latest active query for the current tool and selected word-list group.
+- If search work is chunked or moved off the main actor, the implementation should stay simple, testable, and explicit rather than introducing generalized concurrency abstractions.
 
 ## Scenario mapping
-- `Use the default bundled group`: GIVEN the user has not changed preferences, WHEN Solver loads bundled resources, THEN the implemented tools use the default bundled word-list group consistently.
-- `Change word lists without leaving the current tool`: GIVEN the user is in an implemented tool, WHEN they open the in-app preferences surface and switch bundled groups, THEN the active tool stays selected and updates against the newly selected group.
-- `Switch to the English group`: GIVEN the app has both `test` and `English` bundled word-list groups, WHEN the user selects `English` in preferences, THEN the implemented tools load their local data from the `English` group.
-- `Keep tool behavior coherent across groups`: GIVEN the active bundled group changes, WHEN the user runs crossword, anagram, Scrabble, definitions, or thesaurus flows, THEN visible results and empty or invalid states stay coherent with the selected group.
-- `Persist the group choice`: GIVEN the user changes the word-list-group preference, WHEN the app is terminated and relaunched, THEN the selected bundled group is restored from on-device storage.
-- `Offline operation`: GIVEN the device has no network connectivity, WHEN the user switches bundled groups and uses an implemented tool, THEN the app behaves normally using only local resources.
+- `Interrupt a running crossword search`: GIVEN the user is typing into the crossword pattern field, WHEN a new keystroke arrives before the previous search finishes, THEN the previous search is cancelled and only the latest query may update the UI.
+- `Ignore stale results after word-list changes`: GIVEN the user changes the active word-list group while a search is in flight, WHEN the newer search completes, THEN the results shown come only from the currently selected group.
+- `Keep invalid and empty states immediate`: GIVEN the shared input is empty or invalid, WHEN the user edits it, THEN Solver updates the visible state immediately without waiting on background search work.
+- `Apply the same live-search contract across implemented tools`: GIVEN the user types quickly in crossword, anagram, Scrabble, definitions, or thesaurus, WHEN prior searches are superseded, THEN stale work is cancelled and only the latest query may publish state.
+- `Offline operation`: GIVEN the device has no network access, WHEN the user types rapidly and interrupts searches, THEN all cancellation and search behavior still runs entirely on-device.
 
 ## Exit criteria
-- Add bundled `English` word-list-group resources alongside the existing `test` group under the app’s `Resources/wordlists/` structure.
-- Introduce one persisted user preference that selects the active bundled group for the implemented word-based tools.
-- Present that preference outside the tool selector, in a compact in-app preferences control that does not look like a primary text-entry affordance.
-- Update resource-loading code so implemented tools resolve their bundled data from the currently selected group rather than a hard-coded group.
-- Keep offline-only behavior intact, with explicit and testable handling for any tool whose selected-group data is missing or empty.
-- Update automated tests and the documentation set to cover group selection, persistence, offline operation, and the new bundled resource layout.
+- Refactor live-search execution so each new query starts a distinct async search task and superseded work is cancelled cooperatively.
+- Ensure search work can stop mid-flight rather than always running synchronously to completion once started.
+- Prevent stale results from older queries or older word-list groups from overwriting the latest visible state.
+- Preserve current matching behavior, result ordering, and invalid or empty guidance unless an intentional stale-state fix requires a documented adjustment.
+- Add or update automated tests to cover cancellation, latest-query-wins behavior, and word-list-group changes during live search.
+- Update the documentation set to describe the live-search execution model and the intended cancellation semantics.
 
 ## Promotion rule
-- Promote this plan when Solver can switch between bundled `test` and `English` word-list groups through a persisted user preference, the implemented tools load the selected group coherently offline, the change is verified and documented, then move that roadmap item to `Completed`, promote the top `Later` item into `Now`, and replace `PLAN.md` with a new plan for the new `Now` item.
+- Promote this plan when the implemented live-search tools cancel superseded work, keep typing responsive, only publish the latest query's state, and the behavior is verified and documented, then move that roadmap item to `Completed` and replace `PLAN.md` with a new plan for the next `Later` item.

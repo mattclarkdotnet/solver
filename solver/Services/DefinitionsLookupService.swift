@@ -76,10 +76,10 @@ struct DefinitionsLookupService: Sendable {
     }
 
     func lookup(_ query: DefinitionLookupQuery) async throws -> DefinitionEntry? {
-        await Task.yield()
+        let entries = try loadEntries()
 
-        return try loadEntries().first { entry in
-            entry.lookupKey == query.lookupKey
+        return try await CancellableSearchExecution.run {
+            try resolveEntry(for: query, in: entries)
         }
     }
 
@@ -148,6 +148,21 @@ struct DefinitionsLookupService: Sendable {
             definition: definition,
             lookupKey: lookupKey
         )
+    }
+
+    private func resolveEntry(
+        for query: DefinitionLookupQuery,
+        in entries: [DefinitionEntry]
+    ) throws -> DefinitionEntry? {
+        for (index, entry) in entries.enumerated() {
+            try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
+
+            if entry.lookupKey == query.lookupKey {
+                return entry
+            }
+        }
+
+        return nil
     }
 }
 

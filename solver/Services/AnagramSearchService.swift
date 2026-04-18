@@ -85,14 +85,11 @@ struct AnagramSearchService: Sendable {
     }
 
     func search(_ query: AnagramQuery) async throws -> [AnagramMatch] {
-        await Task.yield()
+        let entries = try loadEntries()
 
-        return try loadEntries()
-            .filter { entry in
-                entry.signature == query.signature && entry.text != query.letters
-            }
-            .sorted { $0.text < $1.text }
-            .map { AnagramMatch(text: $0.text) }
+        return try await CancellableSearchExecution.run {
+            try Self.resolveMatches(for: query, in: entries)
+        }
     }
 
     private func loadEntries() throws -> [AnagramEntry] {
@@ -131,6 +128,26 @@ struct AnagramSearchService: Sendable {
         }
 
         return entries
+    }
+
+    private static func resolveMatches(
+        for query: AnagramQuery,
+        in entries: [AnagramEntry]
+    ) throws -> [AnagramMatch] {
+        var matches: [AnagramEntry] = []
+        matches.reserveCapacity(min(entries.count, 128))
+
+        for (index, entry) in entries.enumerated() {
+            try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
+
+            if entry.signature == query.signature && entry.text != query.letters {
+                matches.append(entry)
+            }
+        }
+
+        return matches
+            .sorted { $0.text < $1.text }
+            .map { AnagramMatch(text: $0.text) }
     }
 }
 

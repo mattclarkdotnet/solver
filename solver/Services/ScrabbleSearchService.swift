@@ -229,20 +229,11 @@ struct ScrabbleSearchService: Sendable {
     }
 
     func search(_ query: ScrabbleQuery) async throws -> [ScrabbleMatch] {
-        await Task.yield()
+        let entries = try loadEntries()
 
-        return try loadEntries()
-            .filter { entry in
-                canFormWord(entry, from: query)
-            }
-            .sorted { lhs, rhs in
-                if lhs.word.count == rhs.word.count {
-                    return lhs.word < rhs.word
-                }
-
-                return lhs.word.count > rhs.word.count
-            }
-            .map { ScrabbleMatch(word: $0.word) }
+        return try await CancellableSearchExecution.run {
+            try resolveMatches(for: query, in: entries)
+        }
     }
 
     private func loadEntries() throws -> [ScrabbleEntry] {
@@ -278,6 +269,32 @@ struct ScrabbleSearchService: Sendable {
         }
 
         return rackCanSupply(rackLetters, from: query.rack)
+    }
+
+    private func resolveMatches(
+        for query: ScrabbleQuery,
+        in entries: [ScrabbleEntry]
+    ) throws -> [ScrabbleMatch] {
+        var matches: [ScrabbleEntry] = []
+        matches.reserveCapacity(min(entries.count, 256))
+
+        for (index, entry) in entries.enumerated() {
+            try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
+
+            if canFormWord(entry, from: query) {
+                matches.append(entry)
+            }
+        }
+
+        return matches
+            .sorted { lhs, rhs in
+                if lhs.word.count == rhs.word.count {
+                    return lhs.word < rhs.word
+                }
+
+                return lhs.word.count > rhs.word.count
+            }
+            .map { ScrabbleMatch(word: $0.word) }
     }
 
     private func matchedBoardIndexes(

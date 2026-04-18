@@ -28,4 +28,26 @@ final class CrosswordSearchServiceTests: XCTestCase {
 
         XCTAssertTrue(matches.isEmpty)
     }
+
+    func testCancelsLongRunningSearch() async throws {
+        let service = CrosswordSearchService(
+            entries: Array(repeating: "abcdefghijklmnopqrst", count: 200_000)
+        )
+        let query = try XCTUnwrap(PatternParser().parse("a*a*a*a*a*a*a*a*a*a").query)
+
+        let task = Task {
+            try await service.search(query)
+        }
+
+        try await Task.sleep(nanoseconds: 10_000_000)
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("Expected the search task to be cancelled.")
+        } catch is CancellationError {
+        } catch {
+            XCTFail("Expected CancellationError but received \(error).")
+        }
+    }
 }

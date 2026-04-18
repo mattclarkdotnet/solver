@@ -78,10 +78,10 @@ struct ThesaurusLookupService: Sendable {
     }
 
     func lookup(_ query: ThesaurusLookupQuery) async throws -> ThesaurusEntry? {
-        await Task.yield()
+        let entries = try loadEntries()
 
-        return try loadEntries().first { entry in
-            entry.lookupKey == query.lookupKey
+        return try await CancellableSearchExecution.run {
+            try resolveEntry(for: query, in: entries)
         }
     }
 
@@ -147,6 +147,21 @@ struct ThesaurusLookupService: Sendable {
             synonyms: synonyms,
             lookupKey: normalizedThesaurusLookupKey(from: word)
         )
+    }
+
+    private func resolveEntry(
+        for query: ThesaurusLookupQuery,
+        in entries: [ThesaurusEntry]
+    ) throws -> ThesaurusEntry? {
+        for (index, entry) in entries.enumerated() {
+            try CancellableSearchExecution.checkCancellation(afterProcessedCount: index)
+
+            if entry.lookupKey == query.lookupKey {
+                return entry
+            }
+        }
+
+        return nil
     }
 }
 

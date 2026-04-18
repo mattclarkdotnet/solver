@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Now
-- Add a real English word list group, and a user preference to choose which group ("test" or "English") to use
+- Make live search cancellable so new input interrupts in-flight searches instead of waiting for them to finish
 
 ## Later
+- Improve search performance on large word lists.
 - Add selectable word lists.
 - Add word-list management.
 - Add automated behavioral scenario coverage.
@@ -11,11 +12,11 @@
 - Add matcher property tests.
 - Add regression coverage for the edge cases listed in `TESTING.md`.
 - Improve result ranking.
-- Improve search performance on large word lists.
 - Improve accessibility across solver screens.
 - Improve multi-word phrase search quality.
 
 ## Completed
+- Add a real English word list group, and a user preference to choose which group ("test" or "English") to use
 - ensure the test word lists all contain the same words, and move them to a folder inside Resources named "wordlists/test/", in preparation for adding more wordlists
 - Put a border around the main input field
 - Make the tool list horizontally scrollable instead of having the "..." for more tools
