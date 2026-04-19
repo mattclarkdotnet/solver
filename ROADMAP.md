@@ -1,10 +1,9 @@
 # Roadmap
 
 ## Now
-- A long press/hover over a solution should bring up an overlay with the word definition and thesaurus entries
+- Sideload the app onto the developer's mobile phone over a USB cable. Investigate whether this should use Xcode UI or command-line tools, and ship the better first workflow.
 
 ## Later
-- Sideload the app onto the developer's mobile phone over a USB cable.  Investigate to see if this would be best done with the command line tools or through xCode UI.
 - The app should use a custom keyboard for entry that has the alphabet, space, question mark, underscore, hyphen and asterisk.  It should also have the keyboard hiding button and a delete button.  No shift key or number toggle are required.  
 - Add automated behavioral scenario coverage.
 - Add parser property tests.
@@ -15,6 +14,7 @@
 - Improve multi-word phrase search quality.
 
 ## Completed
+- A long press/hover over a solution should bring up an overlay with the word definition and thesaurus entries
 - In the anagram search, hyphens in the input should be taken as word separators, and the results should include multi-word entries from the wordlist, but the position of letters in the input is not significant.  For example "villap-ancho" should return "pancho villa"
 - In the crossword search, hyphens and spaces in the input should be taken as word separators, and the results should include multi-word entries from the wordlist.  For example "p????? v????" should return "pancho villa".
 - Improve the visual design to reduce clutter such as nested padding of the solutions. The word list control should just be text - no description or icon.  The left hand side of the pattern and the LHS of the solution words should align.  The hamburger menu and wordlist selector shoud float over the list of solutions (so there should be no white background stripe behind them). Look for other improvements to make as well.
